@@ -76,3 +76,19 @@ class PersonalAccessToken(TimestampMixin, Base):
     scopes: Mapped[str] = mapped_column(Text, default='["read","write"]')
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class VaultSettings(TimestampMixin, Base):
+    __tablename__ = "vault_settings"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    vault_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("vaults.id"), unique=True
+    )
+    language: Mapped[str] = mapped_column(String(10), default="en")
+    date_format: Mapped[str] = mapped_column(String(20), default="YYYY-MM-DD")
+    time_format: Mapped[str] = mapped_column(String(5), default="24h")
+    timezone: Mapped[str] = mapped_column(String(50), default="UTC")
+    feature_flags: Mapped[str] = mapped_column(
+        Text, default='{"debts":true,"gifts":true,"pets":true,"journal":true}'
+    )

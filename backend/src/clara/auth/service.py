@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from clara.auth.models import TotpDevice, User, Vault, VaultMembership
+from clara.auth.models import TotpDevice, User, Vault, VaultMembership, VaultSettings
 from clara.auth.schemas import LoginRequest, RegisterRequest
 from clara.auth.security import (
     create_access_token,
@@ -63,6 +63,7 @@ class AuthService:
             user_id=user.id, vault_id=vault.id, role="owner"
         )
         self.session.add(membership)
+        self.session.add(VaultSettings(vault_id=vault.id))
         await self.session.flush()
 
         access = create_access_token(str(user.id))

@@ -5,8 +5,14 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 
-from clara.auth.models import User, Vault, VaultMembership
-from clara.auth.schemas import MemberInvite, MemberRead, MemberUpdate
+from clara.auth.models import User, Vault, VaultMembership, VaultSettings
+from clara.auth.schemas import (
+    MemberInvite,
+    MemberRead,
+    MemberUpdate,
+    VaultSettingsRead,
+    VaultSettingsUpdate,
+)
 from clara.deps import CurrentUser, Db, require_role
 
 router = APIRouter()
@@ -43,6 +49,8 @@ async def create_vault(body: VaultCreate, user: CurrentUser, db: Db):
         user_id=user.id, vault_id=vault.id, role="owner"
     )
     db.add(membership)
+    settings = VaultSettings(vault_id=vault.id)
+    db.add(settings)
     await db.flush()
     return VaultRead.model_validate(vault)
 
@@ -209,3 +217,36 @@ async def remove_member(
             raise HTTPException(status_code=400, detail="Cannot remove sole owner")
     await db.delete(membership)
     await db.flush()
+
+
+# --- Vault settings ---
+
+
+@router.get("/{vault_id}/settings", response_model=VaultSettingsRead)
+async def get_vault_settings(
+    vault_id: uuid.UUID,
+    db: Db,
+    _: VaultMembership = require_role("owner", "admin", "member"),
+):
+    stmt = select(VaultSettings).where(VaultSettings.vault_id == vault_id)
+    settings = (await db.execute(stmt)).scalar_one_or_none()
+    if settings is None:
+        raise HTTPException(status_code=404, detail="Settings not found")
+    return VaultSettingsRead.model_validate(settings)
+
+
+@router.patch("/{vault_id}/settings", response_model=VaultSettingsRead)
+async def update_vault_settings(
+    vault_id: uuid.UUID,
+    body: VaultSettingsUpdate,
+    db: Db,
+    _: VaultMembership = require_role("owner", "admin"),
+):
+    stmt = select(VaultSettings).where(VaultSettings.vault_id == vault_id)
+    settings = (await db.execute(stmt)).scalar_one_or_none()
+    if settings is None:
+        raise HTTPException(status_code=404, detail="Settings not found")
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(settings, field, value)
+    await db.flush()
+    return VaultSettingsRead.model_validate(settings)

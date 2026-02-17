@@ -116,3 +116,21 @@ class PatRead(BaseModel):
 
 class PatCreateResponse(PatRead):
     token: str
+
+
+class VaultSettingsRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    vault_id: uuid.UUID
+    language: str
+    date_format: str
+    time_format: str
+    timezone: str
+    feature_flags: str
+
+
+class VaultSettingsUpdate(BaseModel):
+    language: str | None = None
+    date_format: str | None = None
+    time_format: str | None = None
+    timezone: str | None = None
+    feature_flags: str | None = None
