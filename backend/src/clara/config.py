@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     secret_key: SecretStr
 
     database_url: PostgresDsn
-    redis_url: RedisDsn = "redis://localhost:6379/0"
+    redis_url: RedisDsn = RedisDsn("redis://localhost:6379/0")
 
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
