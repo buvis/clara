@@ -80,6 +80,18 @@ def create_app() -> FastAPI:
         prefix="/api/v1/vaults/{vault_id}/journal",
         tags=["journal"],
     )
+    from clara.finance.gift_api import router as gifts_router
+    app.include_router(
+        gifts_router,
+        prefix="/api/v1/vaults/{vault_id}/gifts",
+        tags=["gifts"],
+    )
+    from clara.finance.debt_api import router as debts_router
+    app.include_router(
+        debts_router,
+        prefix="/api/v1/vaults/{vault_id}/debts",
+        tags=["debts"],
+    )
 
     return app
 
