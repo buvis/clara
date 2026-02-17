@@ -57,6 +57,16 @@ def create_refresh_token(subject: str) -> str:
     )
 
 
+def create_reset_token(user_id: str) -> str:
+    settings = get_settings()
+    expire = datetime.now(UTC) + timedelta(minutes=15)
+    return jwt.encode(
+        {"sub": user_id, "exp": expire, "type": "reset"},
+        settings.secret_key.get_secret_value(),
+        algorithm=settings.jwt_algorithm,
+    )
+
+
 def _decode_token(token: str, expected_type: str) -> dict | None:
     settings = get_settings()
     try:
@@ -78,3 +88,7 @@ def decode_access_token(token: str) -> dict | None:
 
 def decode_refresh_token(token: str) -> dict | None:
     return _decode_token(token, "refresh")
+
+
+def decode_reset_token(token: str) -> dict | None:
+    return _decode_token(token, "reset")

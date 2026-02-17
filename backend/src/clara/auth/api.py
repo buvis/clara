@@ -1,17 +1,24 @@
+import logging
 import uuid
 
 from fastapi import APIRouter, HTTPException, Request, Response
+from sqlalchemy import select
 
 from clara.auth.schemas import (
     AuthResponse,
+    ForgotPasswordRequest,
     LoginRequest,
     RegisterRequest,
+    ResetPasswordRequest,
     UserRead,
 )
 from clara.auth.security import (
     create_access_token,
     create_refresh_token,
+    create_reset_token,
     decode_refresh_token,
+    decode_reset_token,
+    hash_password,
 )
 from clara.auth.service import AuthService
 from clara.config import get_settings
@@ -20,6 +27,7 @@ from clara.middleware import generate_csrf_token
 from clara.redis import redis_conn
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 LOGIN_RATE_LIMIT = 5
 LOGIN_RATE_WINDOW = 60  # seconds
@@ -85,6 +93,36 @@ async def login(body: LoginRequest, db: Db, response: Response, request: Request
         access_token=access,
         vault_id=user.default_vault_id,
     )
+
+
+@router.post("/forgot-password")
+async def forgot_password(body: ForgotPasswordRequest, db: Db):
+    from clara.auth.models import User
+
+    user = (
+        await db.execute(select(User).where(User.email == body.email))
+    ).scalar_one_or_none()
+    if user:
+        token = create_reset_token(str(user.id))
+        logger.info("Password reset token for %s: %s", user.email, token)
+    return {"ok": True}
+
+
+@router.post("/reset-password")
+async def reset_password(body: ResetPasswordRequest, db: Db):
+    payload = decode_reset_token(body.token)
+    if payload is None:
+        raise HTTPException(
+            status_code=400, detail="Invalid or expired reset token"
+        )
+    from clara.auth.models import User
+
+    user = await db.get(User, uuid.UUID(payload["sub"]))
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.hashed_password = hash_password(body.password)
+    await db.flush()
+    return {"ok": True}
 
 
 @router.post("/refresh", response_model=AuthResponse)
