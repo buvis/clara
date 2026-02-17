@@ -92,6 +92,12 @@ def create_app() -> FastAPI:
         prefix="/api/v1/vaults/{vault_id}/debts",
         tags=["debts"],
     )
+    from clara.files.api import router as files_router
+    app.include_router(
+        files_router,
+        prefix="/api/v1/vaults/{vault_id}/files",
+        tags=["files"],
+    )
 
     return app
 
