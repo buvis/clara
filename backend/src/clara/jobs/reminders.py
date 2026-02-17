@@ -22,7 +22,10 @@ def _next_date(today: date, freq: str, n: int) -> date:
 def _notify_vault_members(session, vault_id, title, body="", link=None):
     members = (
         session.execute(
-            select(VaultMembership).where(VaultMembership.vault_id == vault_id)
+            select(VaultMembership).where(
+                VaultMembership.vault_id == vault_id,
+                VaultMembership.deleted_at.is_(None),
+            )
         )
         .scalars()
         .all()
