@@ -104,6 +104,12 @@ def create_app() -> FastAPI:
         prefix="/api/v1/vaults/{vault_id}/templates",
         tags=["templates"],
     )
+    from clara.customization.custom_field_api import router as custom_fields_router
+    app.include_router(
+        custom_fields_router,
+        prefix="/api/v1/vaults/{vault_id}/custom-fields",
+        tags=["custom-fields"],
+    )
 
     return app
 
