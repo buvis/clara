@@ -67,3 +67,14 @@ class ApiClient {
 }
 
 export const api = new ApiClient();
+
+/** Build query string from params, omitting undefined/null values. */
+export function qs(params: Record<string, unknown>): string {
+  const entries = Object.entries(params).filter(
+    ([, v]) => v !== undefined && v !== null && v !== ''
+  );
+  if (entries.length === 0) return '';
+  const sp = new URLSearchParams();
+  for (const [k, v] of entries) sp.set(k, String(v));
+  return `?${sp.toString()}`;
+}
