@@ -1,0 +1,199 @@
+// --- Auth ---
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  is_active: boolean;
+  default_vault_id: string | null;
+  created_at: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  access_token: string;
+  vault_id: string | null;
+}
+
+// --- Vaults ---
+
+export interface Vault {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+// --- Contacts ---
+
+export interface Contact {
+  id: string;
+  vault_id: string;
+  first_name: string;
+  last_name: string;
+  nickname: string | null;
+  birthdate: string | null;
+  gender: string | null;
+  pronouns: string | null;
+  notes_summary: string | null;
+  favorite: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContactCreate {
+  first_name: string;
+  last_name?: string;
+  nickname?: string | null;
+  birthdate?: string | null;
+  gender?: string | null;
+  pronouns?: string | null;
+  notes_summary?: string | null;
+  favorite?: boolean;
+}
+
+export interface ContactUpdate {
+  first_name?: string;
+  last_name?: string;
+  nickname?: string | null;
+  birthdate?: string | null;
+  gender?: string | null;
+  pronouns?: string | null;
+  notes_summary?: string | null;
+  favorite?: boolean;
+}
+
+// --- Activities ---
+
+export interface ActivityType {
+  id: string;
+  vault_id: string;
+  name: string;
+  icon: string;
+  color: string;
+  created_at: string;
+}
+
+export interface Activity {
+  id: string;
+  vault_id: string;
+  activity_type_id: string | null;
+  title: string;
+  description: string | null;
+  happened_at: string;
+  location: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- Notes ---
+
+export interface Note {
+  id: string;
+  vault_id: string;
+  contact_id: string | null;
+  activity_id: string | null;
+  title: string;
+  body_markdown: string;
+  created_by_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- Reminders ---
+
+export type FrequencyType = 'one_time' | 'week' | 'month' | 'year';
+
+export interface Reminder {
+  id: string;
+  vault_id: string;
+  contact_id: string | null;
+  title: string;
+  description: string | null;
+  next_expected_date: string;
+  frequency_type: FrequencyType;
+  frequency_number: number;
+  last_triggered_at: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- Tasks ---
+
+export interface Task {
+  id: string;
+  vault_id: string;
+  title: string;
+  description: string | null;
+  due_date: string | null;
+  status: string;
+  priority: number;
+  contact_id: string | null;
+  activity_id: string | null;
+  created_by_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- Journal ---
+
+export interface JournalEntry {
+  id: string;
+  vault_id: string;
+  entry_date: string;
+  title: string;
+  body_markdown: string;
+  mood: number | null;
+  created_by_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- Finance ---
+
+export type GiftDirection = 'given' | 'received' | 'idea';
+export type GiftStatus = 'idea' | 'planned' | 'purchased' | 'given';
+
+export interface Gift {
+  id: string;
+  vault_id: string;
+  contact_id: string;
+  direction: GiftDirection;
+  name: string;
+  description: string | null;
+  amount: number | null;
+  currency: string;
+  status: GiftStatus;
+  link: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export type DebtDirection = 'you_owe' | 'owed_to_you';
+
+export interface Debt {
+  id: string;
+  vault_id: string;
+  contact_id: string;
+  direction: DebtDirection;
+  amount: number;
+  currency: string;
+  due_date: string | null;
+  settled: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- Files ---
+
+export interface FileRecord {
+  id: string;
+  vault_id: string;
+  uploader_id: string;
+  storage_key: string;
+  filename: string;
+  mime_type: string;
+  size_bytes: number;
+  created_at: string;
+}
