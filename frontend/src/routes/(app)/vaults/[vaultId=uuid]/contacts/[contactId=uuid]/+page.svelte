@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { contactsApi } from '$api/contacts';
   import type { ContactUpdateInput } from '$api/contacts';
+  import { notesApi } from '$api/notes';
   import { api } from '$api/client';
   import ContactTabs from '$components/contacts/ContactTabs.svelte';
   import Spinner from '$components/ui/Spinner.svelte';
@@ -62,7 +63,7 @@
     } else if (activeTab === 'tasks') {
       api.get<PaginatedResponse<Task>>(`${base}/tasks?${cid}&limit=50`).then((r) => { tabTasks = r.items; tabLoading = false; });
     } else if (activeTab === 'notes') {
-      api.get<PaginatedResponse<Note>>(`${base}/notes?${cid}&limit=50`).then((r) => { tabNotes = r.items; tabLoading = false; });
+      notesApi.forContact(vaultId, contactId, { limit: 50 }).then((r) => { tabNotes = r.items; tabLoading = false; });
     } else if (activeTab === 'gifts') {
       api.get<PaginatedResponse<Gift>>(`${base}/gifts?${cid}&limit=50`).then((r) => { tabGifts = r.items; tabLoading = false; });
     } else if (activeTab === 'debts') {

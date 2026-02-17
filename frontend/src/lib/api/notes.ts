@@ -16,6 +16,12 @@ export const notesApi = {
     return api.get<PaginatedResponse<Note>>(`/vaults/${vaultId}/notes${qs(params ?? {})}`);
   },
 
+  forContact(vaultId: string, contactId: string, params?: { offset?: number; limit?: number }) {
+    return api.get<PaginatedResponse<Note>>(
+      `/vaults/${vaultId}/notes${qs({ contact_id: contactId, ...params })}`
+    );
+  },
+
   get(vaultId: string, noteId: string) {
     return api.get<Note>(`/vaults/${vaultId}/notes/${noteId}`);
   },
