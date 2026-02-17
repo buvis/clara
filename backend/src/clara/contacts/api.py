@@ -1,8 +1,13 @@
 import uuid
+from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
+from clara.activities.models import Activity, ActivityParticipant
+from clara.activities.schemas import ActivityRead
 from clara.base.schema import PaginatedResponse, PaginationMeta
 from clara.contacts.repository import ContactRepository
 from clara.contacts.schemas import ContactCreate, ContactRead, ContactUpdate
@@ -24,9 +29,28 @@ ContactSvc = Annotated[ContactService, Depends(get_contact_service)]
 
 
 @router.get("", response_model=PaginatedResponse[ContactRead])
-async def list_contacts(svc: ContactSvc, pagination: PaginationParams = Depends()):
+async def list_contacts(
+    svc: ContactSvc,
+    pagination: PaginationParams = Depends(),
+    q: str | None = None,
+    tags: str | None = Query(None, description="Comma-separated tag UUIDs"),
+    favorites: bool | None = None,
+    birthday_from: date | None = None,
+    birthday_to: date | None = None,
+):
+    tag_ids = (
+        [uuid.UUID(t.strip()) for t in tags.split(",") if t.strip()]
+        if tags
+        else None
+    )
     items, total = await svc.list_contacts(
-        offset=pagination.offset, limit=pagination.limit
+        offset=pagination.offset,
+        limit=pagination.limit,
+        q=q,
+        tag_ids=tag_ids,
+        favorites=favorites,
+        birthday_from=birthday_from,
+        birthday_to=birthday_to,
     )
     return PaginatedResponse(
         items=[ContactRead.model_validate(c) for c in items],
@@ -58,3 +82,42 @@ async def update_contact(
 @router.delete("/{contact_id}", status_code=204)
 async def delete_contact(contact_id: uuid.UUID, svc: ContactSvc):
     await svc.delete_contact(contact_id)
+
+
+@router.get(
+    "/{contact_id}/activities", response_model=PaginatedResponse[ActivityRead]
+)
+async def list_contact_activities(
+    vault_id: uuid.UUID,
+    contact_id: uuid.UUID,
+    db: Db,
+    _access: VaultAccess,
+    pagination: PaginationParams = Depends(),
+):
+    base = (
+        select(Activity)
+        .join(ActivityParticipant, ActivityParticipant.activity_id == Activity.id)
+        .where(
+            Activity.vault_id == vault_id,
+            Activity.deleted_at.is_(None),
+            ActivityParticipant.contact_id == contact_id,
+        )
+    )
+    from sqlalchemy import func
+
+    total = (
+        await db.execute(select(func.count()).select_from(base.subquery()))
+    ).scalar_one()
+    stmt = (
+        base.options(selectinload(Activity.participants))
+        .offset(pagination.offset)
+        .limit(pagination.limit)
+        .order_by(Activity.happened_at.desc())
+    )
+    items = (await db.execute(stmt)).scalars().all()
+    return PaginatedResponse(
+        items=[ActivityRead.model_validate(a) for a in items],
+        meta=PaginationMeta(
+            total=total, offset=pagination.offset, limit=pagination.limit
+        ),
+    )

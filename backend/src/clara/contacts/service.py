@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 from clara.contacts.models import Contact
 from clara.contacts.repository import ContactRepository
@@ -10,8 +11,22 @@ class ContactService:
     def __init__(self, repo: ContactRepository) -> None:
         self.repo = repo
 
-    async def list_contacts(self, *, offset: int = 0, limit: int = 50):
-        return await self.repo.list(offset=offset, limit=limit)
+    async def list_contacts(
+        self,
+        *,
+        offset: int = 0,
+        limit: int = 50,
+        q: str | None = None,
+        tag_ids: list[uuid.UUID] | None = None,
+        favorites: bool | None = None,
+        birthday_from: date | None = None,
+        birthday_to: date | None = None,
+    ):
+        return await self.repo.list_filtered(
+            offset=offset, limit=limit, q=q, tag_ids=tag_ids,
+            favorites=favorites, birthday_from=birthday_from,
+            birthday_to=birthday_to,
+        )
 
     async def get_contact(self, contact_id: uuid.UUID) -> Contact:
         contact = await self.repo.get_by_id(contact_id)
