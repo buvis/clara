@@ -5,8 +5,10 @@ from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from clara.auth.models import User, VaultMembership
-from clara.auth.security import decode_access_token
+from datetime import UTC, datetime
+
+from clara.auth.models import PersonalAccessToken, User, VaultMembership
+from clara.auth.security import decode_access_token, verify_password
 from clara.database import get_session
 
 Db = Annotated[AsyncSession, Depends(get_session)]
@@ -25,10 +27,40 @@ async def _extract_token(request: Request) -> str:
     )
 
 
+async def _authenticate_pat(
+    token: str, session: AsyncSession
+) -> User | None:
+    """Look up user via Personal Access Token."""
+    prefix = token[:12]
+    stmt = select(PersonalAccessToken).where(
+        PersonalAccessToken.token_prefix == prefix
+    )
+    pats = (await session.execute(stmt)).scalars().all()
+    for pat in pats:
+        if verify_password(token, pat.token_hash):
+            if pat.expires_at and pat.expires_at < datetime.now(UTC):
+                return None
+            pat.last_used_at = datetime.now(UTC)
+            await session.flush()
+            return await session.get(User, pat.user_id)
+    return None
+
+
 async def get_current_user(
     token: str = Depends(_extract_token),
     session: AsyncSession = Depends(get_session),
 ) -> User:
+    # PAT auth
+    if token.startswith("pat_"):
+        user = await _authenticate_pat(token, session)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired token",
+            )
+        return user
+
+    # JWT auth
     payload = decode_access_token(token)
     if payload is None:
         raise HTTPException(

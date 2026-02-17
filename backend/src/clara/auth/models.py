@@ -1,6 +1,7 @@
 import uuid
+from datetime import datetime
 
-from sqlalchemy import Boolean, ForeignKey, String, Uuid
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from clara.base.model import Base, SoftDeleteMixin, TimestampMixin
@@ -62,3 +63,16 @@ class RecoveryCode(TimestampMixin, Base):
     user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"))
     code_hash: Mapped[str] = mapped_column(String(255))
     used: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class PersonalAccessToken(TimestampMixin, Base):
+    __tablename__ = "personal_access_tokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"))
+    name: Mapped[str] = mapped_column(String(255))
+    token_prefix: Mapped[str] = mapped_column(String(12))
+    token_hash: Mapped[str] = mapped_column(Text)
+    scopes: Mapped[str] = mapped_column(Text, default='["read","write"]')
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

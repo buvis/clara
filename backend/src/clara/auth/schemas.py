@@ -95,3 +95,24 @@ class MemberInvite(BaseModel):
 
 class MemberUpdate(BaseModel):
     role: str
+
+
+class PatCreate(BaseModel):
+    name: str
+    scopes: list[str] = ["read", "write"]
+    expires_in_days: int | None = None
+
+
+class PatRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    name: str
+    token_prefix: str
+    scopes: list[str]
+    expires_at: datetime | None
+    last_used_at: datetime | None
+    created_at: datetime
+
+
+class PatCreateResponse(PatRead):
+    token: str

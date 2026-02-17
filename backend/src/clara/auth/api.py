@@ -10,12 +10,15 @@ import qrcode
 from fastapi import APIRouter, HTTPException, Request, Response
 from sqlalchemy import select
 
-from clara.auth.models import RecoveryCode, TotpDevice, User
+from clara.auth.models import PersonalAccessToken, RecoveryCode, TotpDevice, User
 from clara.auth.schemas import (
     AuthResponse,
     ForgotPasswordRequest,
     LoginResponse,
     LoginRequest,
+    PatCreate,
+    PatCreateResponse,
+    PatRead,
     RegisterRequest,
     ResetPasswordRequest,
     TwoFactorChallengeResponse,
@@ -365,3 +368,71 @@ async def two_factor_disable(user: CurrentUser, db: Db):
     )
     await db.flush()
     return {"ok": True}
+
+
+# --- Personal Access Tokens ---
+
+
+@router.get("/tokens", response_model=list[PatRead])
+async def list_tokens(user: CurrentUser, db: Db):
+    stmt = select(PersonalAccessToken).where(
+        PersonalAccessToken.user_id == user.id
+    )
+    result = await db.execute(stmt)
+    pats = result.scalars().all()
+    import json
+
+    return [
+        PatRead(
+            id=p.id,
+            name=p.name,
+            token_prefix=p.token_prefix,
+            scopes=json.loads(p.scopes),
+            expires_at=p.expires_at,
+            last_used_at=p.last_used_at,
+            created_at=p.created_at,
+        )
+        for p in pats
+    ]
+
+
+@router.post("/tokens", response_model=PatCreateResponse, status_code=201)
+async def create_token(body: PatCreate, user: CurrentUser, db: Db):
+    import json
+    from datetime import UTC, datetime, timedelta
+
+    raw_token = "pat_" + secrets.token_urlsafe(32)
+    expires_at = None
+    if body.expires_in_days:
+        expires_at = datetime.now(UTC) + timedelta(days=body.expires_in_days)
+
+    pat = PersonalAccessToken(
+        user_id=user.id,
+        name=body.name,
+        token_prefix=raw_token[:12],
+        token_hash=hash_password(raw_token),
+        scopes=json.dumps(body.scopes),
+        expires_at=expires_at,
+    )
+    db.add(pat)
+    await db.flush()
+
+    return PatCreateResponse(
+        id=pat.id,
+        name=pat.name,
+        token_prefix=pat.token_prefix,
+        scopes=body.scopes,
+        expires_at=pat.expires_at,
+        last_used_at=None,
+        created_at=pat.created_at,
+        token=raw_token,
+    )
+
+
+@router.delete("/tokens/{token_id}", status_code=204)
+async def revoke_token(token_id: uuid.UUID, user: CurrentUser, db: Db):
+    pat = await db.get(PersonalAccessToken, token_id)
+    if pat is None or pat.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Token not found")
+    await db.delete(pat)
+    await db.flush()
