@@ -20,8 +20,8 @@
 
   async function loadContacts(params: { offset: number; limit: number; search: string; filter: string | null }) {
     return contactsApi.list(vaultId, {
-      search: params.search || undefined,
-      favorite: params.filter === 'favorite' ? true : undefined,
+      q: params.search || undefined,
+      favorites: params.filter === 'favorite' ? true : undefined,
       offset: params.offset,
       limit: params.limit
     });

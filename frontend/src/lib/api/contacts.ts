@@ -16,7 +16,7 @@ export interface ContactCreateInput {
 export type ContactUpdateInput = Partial<ContactCreateInput>;
 
 export const contactsApi = {
-  list(vaultId: string, params?: { search?: string; favorite?: boolean; offset?: number; limit?: number }) {
+  list(vaultId: string, params?: { q?: string; favorites?: boolean; offset?: number; limit?: number }) {
     return api.get<PaginatedResponse<Contact>>(`/vaults/${vaultId}/contacts${qs(params ?? {})}`);
   },
 
