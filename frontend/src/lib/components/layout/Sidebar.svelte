@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { vaultState } from '$state/vault.svelte';
+  import type { FeatureFlags } from '$state/vault.svelte';
   import {
     Home,
     Users,
@@ -16,22 +17,33 @@
 
   let { onnavigate }: { onnavigate?: () => void } = $props();
 
-  const navItems = [
+  type NavItem = { label: string; icon: typeof Home; path: string; flag?: keyof FeatureFlags };
+
+  const allNavItems: NavItem[] = [
     { label: 'Dashboard', icon: Home, path: 'dashboard' },
     { label: 'Contacts', icon: Users, path: 'contacts' },
     { label: 'Tasks', icon: CheckSquare, path: 'tasks' },
     { label: 'Activities', icon: CalendarDays, path: 'activities' },
-    { label: 'Journal', icon: BookOpen, path: 'journal' },
+    { label: 'Journal', icon: BookOpen, path: 'journal', flag: 'journal' },
     { label: 'Reminders', icon: Bell, path: 'reminders' },
-    { label: 'Gifts', icon: Gift, path: 'gifts' },
-    { label: 'Debts', icon: DollarSign, path: 'debts' },
+    { label: 'Gifts', icon: Gift, path: 'gifts', flag: 'gifts' },
+    { label: 'Debts', icon: DollarSign, path: 'debts', flag: 'debts' },
     { label: 'Files', icon: FolderOpen, path: 'files' },
     { label: 'Settings', icon: Settings, path: 'settings' }
   ];
 
+  let navItems = $derived(
+    allNavItems.filter((item) => !item.flag || vaultState.featureFlags[item.flag])
+  );
+
   let basePath = $derived(
     vaultState.currentId ? `/vaults/${vaultState.currentId}` : ''
   );
+
+  $effect(() => {
+    const id = vaultState.currentId;
+    if (id) vaultState.loadFeatureFlags(id);
+  });
 
   function isActive(itemPath: string): boolean {
     return page.url.pathname.includes(`/${itemPath}`);

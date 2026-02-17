@@ -8,6 +8,7 @@ export type {
   TwoFactorVerifyRequest,
   TwoFactorConfirmRequest,
   Vault,
+  VaultSettings,
   Contact,
   ContactCreate,
   ContactUpdate,

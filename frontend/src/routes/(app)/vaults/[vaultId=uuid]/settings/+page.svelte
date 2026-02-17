@@ -3,15 +3,16 @@
   import { authApi } from '$api/auth';
   import { vaultsApi } from '$api/vaults';
   import { importExportApi } from '$api/importExport';
+  import { customizationApi } from '$api/customization';
   import type { TwoFactorSetupResponse } from '$api/types';
-  import type { Member } from '$lib/types/models';
+  import type { Member, Template, CustomField } from '$lib/types/models';
   import Button from '$components/ui/Button.svelte';
   import Badge from '$components/ui/Badge.svelte';
   import Input from '$components/ui/Input.svelte';
 
   const vaultId = $derived(page.params.vaultId!);
 
-  const tabs = ['General', 'Members', 'Security', 'Import/Export'] as const;
+  const tabs = ['General', 'Members', 'Templates', 'Custom Fields', 'Security', 'Import/Export'] as const;
   type Tab = (typeof tabs)[number];
   let activeTab = $state<Tab>('General');
 
@@ -35,6 +36,11 @@
   let inviteEmail = $state('');
   let inviteRole = $state('member');
   let inviting = $state(false);
+
+  let templates = $state<Template[]>([]);
+  let templatesLoading = $state(true);
+  let customFields = $state<CustomField[]>([]);
+  let customFieldsLoading = $state(true);
 
   let importLoading = $state(false);
   let importMessage = $state('');
@@ -232,10 +238,32 @@
     }
   }
 
+  async function loadTemplates() {
+    templatesLoading = true;
+    try {
+      const res = await customizationApi.listTemplates(vaultId);
+      templates = res.items;
+    } finally {
+      templatesLoading = false;
+    }
+  }
+
+  async function loadCustomFields() {
+    customFieldsLoading = true;
+    try {
+      const res = await customizationApi.listCustomFields(vaultId);
+      customFields = res.items;
+    } finally {
+      customFieldsLoading = false;
+    }
+  }
+
   $effect(() => {
     if (!vaultId) return;
     loadSettings();
     loadMembers();
+    loadTemplates();
+    loadCustomFields();
   });
 </script>
 
@@ -391,6 +419,49 @@
         </div>
         <Button type="submit" loading={inviting}>Invite</Button>
       </form>
+    </section>
+  {/if}
+
+  {#if activeTab === 'Templates'}
+    <section class="space-y-4 rounded-xl border border-neutral-800 bg-neutral-900 p-6">
+      <h2 class="text-lg font-semibold text-white">Templates</h2>
+      {#if templatesLoading}
+        <p class="text-sm text-neutral-500">Loading templates…</p>
+      {:else if templates.length === 0}
+        <p class="text-sm text-neutral-500">No templates configured.</p>
+      {:else}
+        <div class="space-y-2">
+          {#each templates as t}
+            <div class="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2">
+              <p class="text-sm font-medium text-white">{t.name}</p>
+              <span class="text-xs text-neutral-500">{new Date(t.updated_at).toLocaleDateString()}</span>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </section>
+  {/if}
+
+  {#if activeTab === 'Custom Fields'}
+    <section class="space-y-4 rounded-xl border border-neutral-800 bg-neutral-900 p-6">
+      <h2 class="text-lg font-semibold text-white">Custom Fields</h2>
+      {#if customFieldsLoading}
+        <p class="text-sm text-neutral-500">Loading custom fields…</p>
+      {:else if customFields.length === 0}
+        <p class="text-sm text-neutral-500">No custom fields configured.</p>
+      {:else}
+        <div class="space-y-2">
+          {#each customFields as cf}
+            <div class="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2">
+              <div>
+                <p class="text-sm font-medium text-white">{cf.name}</p>
+                <p class="text-xs text-neutral-500">{cf.field_type}{cf.module ? ` · ${cf.module}` : ''}</p>
+              </div>
+              <span class="text-xs text-neutral-500">#{cf.sort_order}</span>
+            </div>
+          {/each}
+        </div>
+      {/if}
     </section>
   {/if}
 
