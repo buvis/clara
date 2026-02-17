@@ -5,11 +5,12 @@
     Home,
     Users,
     CheckSquare,
+    CalendarDays,
     BookOpen,
     Bell,
     Gift,
     DollarSign,
-    Folder,
+    FolderOpen,
     Settings
   } from 'lucide-svelte';
 
@@ -19,11 +20,12 @@
     { label: 'Dashboard', icon: Home, path: 'dashboard' },
     { label: 'Contacts', icon: Users, path: 'contacts' },
     { label: 'Tasks', icon: CheckSquare, path: 'tasks' },
+    { label: 'Activities', icon: CalendarDays, path: 'activities' },
     { label: 'Journal', icon: BookOpen, path: 'journal' },
     { label: 'Reminders', icon: Bell, path: 'reminders' },
     { label: 'Gifts', icon: Gift, path: 'gifts' },
     { label: 'Debts', icon: DollarSign, path: 'debts' },
-    { label: 'Files', icon: Folder, path: 'files' },
+    { label: 'Files', icon: FolderOpen, path: 'files' },
     { label: 'Settings', icon: Settings, path: 'settings' }
   ];
 
