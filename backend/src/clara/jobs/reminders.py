@@ -3,7 +3,9 @@ from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import select
 
+from clara.auth.models import VaultMembership
 from clara.jobs.sync_db import get_sync_session
+from clara.notifications.models import Notification
 from clara.reminders.models import Reminder, StayInTouchConfig
 
 
@@ -15,6 +17,26 @@ def _next_date(today: date, freq: str, n: int) -> date:
     if freq == "year":
         return today + relativedelta(years=n)
     return today + timedelta(days=30 * n)
+
+
+def _notify_vault_members(session, vault_id, title, body="", link=None):
+    members = (
+        session.execute(
+            select(VaultMembership).where(VaultMembership.vault_id == vault_id)
+        )
+        .scalars()
+        .all()
+    )
+    for m in members:
+        session.add(
+            Notification(
+                user_id=m.user_id,
+                vault_id=vault_id,
+                title=title,
+                body=body,
+                link=link,
+            )
+        )
 
 
 def evaluate_reminders():
@@ -30,6 +52,10 @@ def evaluate_reminders():
         reminders = session.execute(stmt).scalars().all()
         for r in reminders:
             r.last_triggered_at = today
+            _notify_vault_members(
+                session, r.vault_id, f"Reminder: {r.title}",
+                link=f"/vaults/{r.vault_id}/reminders",
+            )
             if r.frequency_type == "one_time":
                 r.status = "completed"
             else:
@@ -80,6 +106,10 @@ def evaluate_stay_in_touch():
                         status="active",
                     )
                     session.add(reminder)
+                    _notify_vault_members(
+                        session, config.vault_id, "Stay in touch overdue",
+                        link=f"/vaults/{config.vault_id}/contacts/{config.contact_id}",
+                    )
         session.commit()
     finally:
         session.close()

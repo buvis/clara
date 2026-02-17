@@ -156,6 +156,12 @@ def create_app() -> FastAPI:
         prefix="/api/v1/vaults/{vault_id}",
         tags=["import-export"],
     )
+    from clara.notifications.api import router as notifications_router
+    app.include_router(
+        notifications_router,
+        prefix="/api/v1/vaults/{vault_id}/notifications",
+        tags=["notifications"],
+    )
 
     return app
 
