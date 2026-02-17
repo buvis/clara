@@ -98,6 +98,12 @@ def create_app() -> FastAPI:
         prefix="/api/v1/vaults/{vault_id}/files",
         tags=["files"],
     )
+    from clara.customization.template_api import router as templates_router
+    app.include_router(
+        templates_router,
+        prefix="/api/v1/vaults/{vault_id}/templates",
+        tags=["templates"],
+    )
 
     return app
 
