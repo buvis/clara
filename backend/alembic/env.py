@@ -11,6 +11,7 @@ import clara.auth.models  # noqa: F401
 import clara.contacts.models  # noqa: F401
 import clara.activities.models  # noqa: F401
 import clara.notes.models  # noqa: F401
+import clara.reminders.models  # noqa: F401
 
 # Import all models so they register on Base.metadata
 # (add imports here as modules are created in later phases)
