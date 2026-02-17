@@ -74,6 +74,12 @@ def create_app() -> FastAPI:
         prefix="/api/v1/vaults/{vault_id}/tasks",
         tags=["tasks"],
     )
+    from clara.journal.api import router as journal_router
+    app.include_router(
+        journal_router,
+        prefix="/api/v1/vaults/{vault_id}/journal",
+        tags=["journal"],
+    )
 
     return app
 
