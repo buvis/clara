@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from clara.config import get_settings
 from clara.base.model import Base
 import clara.auth.models  # noqa: F401
+import clara.contacts.models  # noqa: F401
 
 # Import all models so they register on Base.metadata
 # (add imports here as modules are created in later phases)
