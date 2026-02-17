@@ -85,6 +85,51 @@ async def test_delete_contact(authenticated_client: AsyncClient, vault: Vault):
     assert contact_id not in ids
 
 
+async def test_contact_count_with_multiple_tags(
+    authenticated_client: AsyncClient, vault: Vault,
+):
+    """Filtering by multiple tags should not duplicate contacts in count."""
+    # Create 2 tags
+    tag1 = await authenticated_client.post(
+        f"/api/v1/vaults/{vault.id}/tags", json={"name": "tag1"},
+    )
+    tag2 = await authenticated_client.post(
+        f"/api/v1/vaults/{vault.id}/tags", json={"name": "tag2"},
+    )
+    assert tag1.status_code == 201
+    assert tag2.status_code == 201
+    tag1_id = tag1.json()["id"]
+    tag2_id = tag2.json()["id"]
+
+    # Create contact
+    contact = await authenticated_client.post(
+        f"/api/v1/vaults/{vault.id}/contacts", json={"first_name": "Tagged"},
+    )
+    assert contact.status_code == 201
+    contact_id = contact.json()["id"]
+
+    # Attach both tags
+    r1 = await authenticated_client.post(
+        f"/api/v1/vaults/{vault.id}/contacts/{contact_id}/tags",
+        json={"tag_id": tag1_id},
+    )
+    r2 = await authenticated_client.post(
+        f"/api/v1/vaults/{vault.id}/contacts/{contact_id}/tags",
+        json={"tag_id": tag2_id},
+    )
+    assert r1.status_code == 201
+    assert r2.status_code == 201
+
+    # Filter by both tags — should get 1 contact, not 2
+    resp = await authenticated_client.get(
+        f"/api/v1/vaults/{vault.id}/contacts?tags={tag1_id},{tag2_id}"
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["meta"]["total"] == 1
+    assert len(body["items"]) == 1
+
+
 async def test_filter_by_favorites(authenticated_client: AsyncClient, vault: Vault):
     first = await authenticated_client.post(
         f"/api/v1/vaults/{vault.id}/contacts",

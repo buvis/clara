@@ -68,7 +68,7 @@ class ContactRepository(BaseRepository[Contact]):
             birthday_from=birthday_from, birthday_to=birthday_to,
         )
         count_stmt = self._apply_filters(
-            select(func.count())
+            select(func.count(func.distinct(self.model.id)))
             .select_from(self.model)
             .where(self.model.vault_id == self.vault_id)
             .where(self.model.deleted_at.is_(None)),
@@ -77,7 +77,10 @@ class ContactRepository(BaseRepository[Contact]):
         total = (await self.session.execute(count_stmt)).scalar_one()
         items_stmt = self._apply_filters(
             self._base_query(), **filters
-        ).offset(offset).limit(limit).order_by(Contact.created_at.desc())
+        )
+        if tag_ids:
+            items_stmt = items_stmt.distinct()
+        items_stmt = items_stmt.offset(offset).limit(limit).order_by(Contact.created_at.desc())
         result = await self.session.execute(items_stmt)
         return result.scalars().all(), total
 
