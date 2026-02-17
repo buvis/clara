@@ -19,6 +19,9 @@ class Contact(VaultScopedModel):
     notes_summary: Mapped[str | None] = mapped_column(Text)
     favorite: Mapped[bool] = mapped_column(Boolean, default=False)
     photo_file_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, nullable=True)
+    template_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("templates.id"), nullable=True
+    )
 
     contact_methods: Mapped[list["ContactMethod"]] = relationship(
         back_populates="contact", cascade="all, delete-orphan"
