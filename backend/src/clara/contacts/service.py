@@ -35,14 +35,22 @@ class ContactService:
         return contact
 
     async def create_contact(self, data: ContactCreate) -> Contact:
-        return await self.repo.create(**data.model_dump())
+        created = await self.repo.create(**data.model_dump())
+        contact = await self.repo.get_by_id(created.id)
+        if contact is None:
+            raise NotFoundError("Contact", created.id)
+        return contact
 
     async def update_contact(
         self, contact_id: uuid.UUID, data: ContactUpdate
     ) -> Contact:
-        return await self.repo.update(
+        await self.repo.update(
             contact_id, **data.model_dump(exclude_unset=True)
         )
+        contact = await self.repo.get_by_id(contact_id)
+        if contact is None:
+            raise NotFoundError("Contact", contact_id)
+        return contact
 
     async def delete_contact(self, contact_id: uuid.UUID) -> None:
         await self.repo.soft_delete(contact_id)
