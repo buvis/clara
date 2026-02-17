@@ -1,0 +1,42 @@
+import uuid
+from datetime import date, datetime
+
+from pydantic import BaseModel, ConfigDict
+
+
+class ContactRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    vault_id: uuid.UUID
+    first_name: str
+    last_name: str
+    nickname: str | None
+    birthdate: date | None
+    gender: str | None
+    pronouns: str | None
+    notes_summary: str | None
+    favorite: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class ContactCreate(BaseModel):
+    first_name: str
+    last_name: str = ""
+    nickname: str | None = None
+    birthdate: date | None = None
+    gender: str | None = None
+    pronouns: str | None = None
+    notes_summary: str | None = None
+    favorite: bool = False
+
+
+class ContactUpdate(BaseModel):
+    first_name: str | None = None
+    last_name: str | None = None
+    nickname: str | None = None
+    birthdate: date | None = None
+    gender: str | None = None
+    pronouns: str | None = None
+    notes_summary: str | None = None
+    favorite: bool | None = None

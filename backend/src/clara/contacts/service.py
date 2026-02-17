@@ -1,0 +1,38 @@
+import uuid
+
+from clara.contacts.models import Contact
+from clara.contacts.repository import ContactRepository
+from clara.contacts.schemas import ContactCreate, ContactUpdate
+from clara.exceptions import NotFoundError
+
+
+class ContactService:
+    def __init__(self, repo: ContactRepository) -> None:
+        self.repo = repo
+
+    async def list_contacts(self, *, offset: int = 0, limit: int = 50):
+        return await self.repo.list(offset=offset, limit=limit)
+
+    async def get_contact(self, contact_id: uuid.UUID) -> Contact:
+        contact = await self.repo.get_by_id(contact_id)
+        if contact is None:
+            raise NotFoundError("Contact", contact_id)
+        return contact
+
+    async def create_contact(self, data: ContactCreate) -> Contact:
+        return await self.repo.create(**data.model_dump())
+
+    async def update_contact(
+        self, contact_id: uuid.UUID, data: ContactUpdate
+    ) -> Contact:
+        return await self.repo.update(
+            contact_id, **data.model_dump(exclude_unset=True)
+        )
+
+    async def delete_contact(self, contact_id: uuid.UUID) -> None:
+        await self.repo.soft_delete(contact_id)
+
+    async def search_contacts(
+        self, query: str, *, offset: int = 0, limit: int = 50
+    ):
+        return await self.repo.search(query, offset=offset, limit=limit)
