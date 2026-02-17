@@ -11,6 +11,12 @@ def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title="CLARA", version="0.1.0")
 
+    from clara.logging import setup_logging
+    setup_logging(debug=settings.debug)
+
+    from clara.metrics import instrumentator
+    instrumentator.instrument(app).expose(app, endpoint="/metrics")
+
     app.add_middleware(CSRFMiddleware)
     app.add_middleware(
         CORSMiddleware,
@@ -31,6 +37,24 @@ def create_app() -> FastAPI:
     @app.exception_handler(ConflictError)
     async def conflict_handler(request: Request, exc: ConflictError):
         return JSONResponse(status_code=409, content={"detail": exc.detail})
+
+    import time
+    import structlog
+    logger = structlog.get_logger()
+
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        start = time.monotonic()
+        response = await call_next(request)
+        duration_ms = round((time.monotonic() - start) * 1000, 1)
+        logger.info(
+            "request_handled",
+            method=request.method,
+            path=request.url.path,
+            status=response.status_code,
+            duration_ms=duration_ms,
+        )
+        return response
 
     @app.get("/health")
     async def health():
