@@ -58,7 +58,7 @@
     const base = `/vaults/${vaultId}`;
     const cid = `contact_id=${contactId}`;
     if (activeTab === 'activities') {
-      api.get<PaginatedResponse<Activity>>(`${base}/activities?${cid}&limit=50`).then((r) => { tabActivities = r.items; tabLoading = false; });
+      api.get<PaginatedResponse<Activity>>(`${base}/contacts/${contactId}/activities?limit=50`).then((r) => { tabActivities = r.items; tabLoading = false; });
     } else if (activeTab === 'tasks') {
       api.get<PaginatedResponse<Task>>(`${base}/tasks?${cid}&limit=50`).then((r) => { tabTasks = r.items; tabLoading = false; });
     } else if (activeTab === 'notes') {
