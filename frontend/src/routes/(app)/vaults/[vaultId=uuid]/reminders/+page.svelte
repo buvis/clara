@@ -1,0 +1,135 @@
+<script lang="ts">
+  import { page } from '$app/state';
+  import { remindersApi } from '$api/reminders';
+  import type { ReminderCreateInput } from '$api/reminders';
+  import DataList from '$components/data/DataList.svelte';
+  import Button from '$components/ui/Button.svelte';
+  import Badge from '$components/ui/Badge.svelte';
+  import Modal from '$components/ui/Modal.svelte';
+  import Input from '$components/ui/Input.svelte';
+  import { Plus, Bell, BellOff } from 'lucide-svelte';
+  import type { Reminder } from '$lib/types/models';
+
+  const vaultId = $derived(page.params.vaultId);
+
+  let showCreate = $state(false);
+  let createForm = $state<ReminderCreateInput>({
+    title: '',
+    next_expected_date: new Date().toISOString().split('T')[0],
+    frequency_type: 'one_time',
+    frequency_number: 1
+  });
+  let creating = $state(false);
+  let listKey = $state(0);
+
+  const filters = [
+    { label: 'Active', value: 'active' },
+    { label: 'Completed', value: 'completed' }
+  ];
+
+  async function loadReminders(params: { offset: number; limit: number; search: string; filter: string | null }) {
+    return remindersApi.list(vaultId, {
+      search: params.search || undefined,
+      status: params.filter ?? undefined,
+      offset: params.offset,
+      limit: params.limit
+    });
+  }
+
+  async function handleCreate() {
+    if (!createForm.title.trim()) return;
+    creating = true;
+    try {
+      await remindersApi.create(vaultId, createForm);
+      showCreate = false;
+      createForm = { title: '', next_expected_date: new Date().toISOString().split('T')[0], frequency_type: 'one_time', frequency_number: 1 };
+      listKey++;
+    } finally {
+      creating = false;
+    }
+  }
+
+  async function markCompleted(reminder: Reminder) {
+    await remindersApi.update(vaultId, reminder.id, { status: 'completed' });
+    listKey++;
+  }
+
+  function formatDate(d: string): string {
+    return new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function isOverdue(d: string): boolean {
+    return new Date(d) < new Date(new Date().toDateString());
+  }
+
+  const frequencyLabels: Record<string, string> = { one_time: 'Once', week: 'Weekly', month: 'Monthly', year: 'Yearly' };
+</script>
+
+<svelte:head><title>Reminders</title></svelte:head>
+
+<div class="space-y-4">
+  {#key listKey}
+    <DataList
+      load={loadReminders}
+      {filters}
+      searchPlaceholder="Search reminders..."
+      emptyIcon={Bell}
+      emptyTitle="No reminders"
+    >
+      {#snippet header()}
+        <Button onclick={() => (showCreate = true)}><Plus size={16} /> Add Reminder</Button>
+      {/snippet}
+      {#snippet row(item: Reminder)}
+        <div class="flex items-center gap-3 px-4 py-3">
+          <div class="shrink-0 {item.status === 'completed' ? 'text-neutral-400' : isOverdue(item.next_expected_date) ? 'text-red-400' : 'text-brand-400'}">
+            {#if item.status === 'completed'}<BellOff size={20} />{:else}<Bell size={20} />{/if}
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-medium {item.status === 'completed' ? 'text-neutral-400 line-through' : 'text-white'}">{item.title}</p>
+            {#if item.description}<p class="truncate text-xs text-neutral-500">{item.description}</p>{/if}
+          </div>
+          <div class="flex items-center gap-2">
+            {#if item.frequency_type !== 'one_time'}
+              <Badge text={frequencyLabels[item.frequency_type] ?? item.frequency_type} />
+            {/if}
+            <span class="text-xs {isOverdue(item.next_expected_date) && item.status !== 'completed' ? 'font-medium text-red-400' : 'text-neutral-500'}">
+              {formatDate(item.next_expected_date)}
+            </span>
+            {#if item.status === 'active'}
+              <Button variant="ghost" size="sm" onclick={() => markCompleted(item)}>Done</Button>
+            {/if}
+          </div>
+        </div>
+      {/snippet}
+    </DataList>
+  {/key}
+</div>
+
+{#if showCreate}
+  <Modal title="New Reminder" onclose={() => (showCreate = false)}>
+    <form onsubmit={handleCreate} class="space-y-4">
+      <Input label="Title" bind:value={createForm.title} required />
+      <div>
+        <label class="mb-1 block text-sm font-medium text-neutral-300">Description</label>
+        <textarea bind:value={createForm.description} rows="2" class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"></textarea>
+      </div>
+      <Input label="Date" type="date" bind:value={createForm.next_expected_date} required />
+      <div>
+        <label class="mb-1 block text-sm font-medium text-neutral-300">Frequency</label>
+        <select bind:value={createForm.frequency_type} class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500">
+          <option value="one_time">One time</option>
+          <option value="week">Every X weeks</option>
+          <option value="month">Every X months</option>
+          <option value="year">Every X years</option>
+        </select>
+      </div>
+      {#if createForm.frequency_type !== 'one_time'}
+        <Input label="Every" type="number" min="1" bind:value={createForm.frequency_number} />
+      {/if}
+      <div class="flex justify-end gap-3">
+        <Button variant="ghost" onclick={() => (showCreate = false)}>Cancel</Button>
+        <Button type="submit" loading={creating}>Create</Button>
+      </div>
+    </form>
+  </Modal>
+{/if}
