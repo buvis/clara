@@ -36,6 +36,8 @@ def create_app() -> FastAPI:
 
     from clara.auth.api import router as auth_router
     app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
+    from clara.auth.vault_api import router as vault_router
+    app.include_router(vault_router, prefix="/api/v1/vaults", tags=["vaults"])
 
     return app
 
