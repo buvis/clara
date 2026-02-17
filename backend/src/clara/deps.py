@@ -1,3 +1,4 @@
+import json
 import uuid
 from typing import Annotated
 
@@ -29,7 +30,7 @@ async def _extract_token(request: Request) -> str:
 
 async def _authenticate_pat(
     token: str, session: AsyncSession
-) -> User | None:
+) -> tuple[User, PersonalAccessToken] | None:
     """Look up user via Personal Access Token."""
     prefix = token[:12]
     stmt = select(PersonalAccessToken).where(
@@ -42,21 +43,38 @@ async def _authenticate_pat(
                 return None
             pat.last_used_at = datetime.now(UTC)
             await session.flush()
-            return await session.get(User, pat.user_id)
+            user = await session.get(User, pat.user_id)
+            return (user, pat) if user else None
     return None
 
 
+_WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
+
 async def get_current_user(
+    request: Request,
     token: str = Depends(_extract_token),
     session: AsyncSession = Depends(get_session),
 ) -> User:
     # PAT auth
     if token.startswith("pat_"):
-        user = await _authenticate_pat(token, session)
-        if user is None:
+        result = await _authenticate_pat(token, session)
+        if result is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired token",
+            )
+        user, pat = result
+        scopes = json.loads(pat.scopes)
+        if request.method in _WRITE_METHODS and "write" not in scopes:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Token scope insufficient",
+            )
+        if request.method not in _WRITE_METHODS and "read" not in scopes:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Token scope insufficient",
             )
         return user
 

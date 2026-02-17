@@ -93,3 +93,51 @@ async def test_me_authenticated(authenticated_client: AsyncClient):
 async def test_me_unauthenticated(client: AsyncClient):
     response = await client.get("/api/v1/auth/me")
     assert response.status_code == 401
+
+
+async def test_pat_read_scope_blocks_write(
+    authenticated_client: AsyncClient, vault,
+):
+    """Read-only PAT should get 403 on POST endpoints."""
+    resp = await authenticated_client.post(
+        "/api/v1/auth/tokens",
+        json={"name": "ro", "scopes": ["read"]},
+    )
+    assert resp.status_code == 201
+    token = resp.json()["token"]
+
+    # Use per-request headers to override cookies with PAT
+    resp = await authenticated_client.request(
+        "POST",
+        f"/api/v1/vaults/{vault.id}/contacts",
+        json={"first_name": "Blocked"},
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Cookie": "",  # clear cookies for this request
+        },
+    )
+    assert resp.status_code == 403
+    assert "scope" in resp.json()["detail"].lower()
+
+
+async def test_pat_readwrite_scope_allows_write(
+    authenticated_client: AsyncClient, vault,
+):
+    """Read+write PAT should succeed on POST endpoints."""
+    resp = await authenticated_client.post(
+        "/api/v1/auth/tokens",
+        json={"name": "rw", "scopes": ["read", "write"]},
+    )
+    assert resp.status_code == 201
+    token = resp.json()["token"]
+
+    resp = await authenticated_client.request(
+        "POST",
+        f"/api/v1/vaults/{vault.id}/contacts",
+        json={"first_name": "Allowed"},
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Cookie": "",
+        },
+    )
+    assert resp.status_code == 201
