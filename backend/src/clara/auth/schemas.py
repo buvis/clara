@@ -38,3 +38,21 @@ class AuthResponse(BaseModel):
     user: UserRead
     access_token: str
     vault_id: uuid.UUID | None
+
+
+class MemberRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    user_id: uuid.UUID
+    email: str
+    name: str
+    role: str
+    joined_at: datetime
+
+
+class MemberInvite(BaseModel):
+    email: EmailStr
+    role: str = "member"
+
+
+class MemberUpdate(BaseModel):
+    role: str

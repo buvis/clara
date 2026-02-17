@@ -8,6 +8,7 @@ from clara.auth.security import (
     create_access_token,
     create_refresh_token,
     hash_password,
+    needs_rehash,
     verify_password,
 )
 from clara.exceptions import ConflictError
@@ -63,6 +64,11 @@ class AuthService:
             data.password, user.hashed_password
         ):
             raise HTTPException(status_code=401, detail="Invalid credentials")
+
+        # Upgrade legacy bcrypt hash to argon2
+        if needs_rehash(user.hashed_password):
+            user.hashed_password = hash_password(data.password)
+            await self.session.flush()
 
         access = create_access_token(str(user.id))
         refresh = create_refresh_token(str(user.id))

@@ -1,17 +1,34 @@
 from datetime import UTC, datetime, timedelta
 
+import argon2
 import bcrypt
 import jwt
 
 from clara.config import get_settings
 
+_ph = argon2.PasswordHasher()
+
 
 def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    return _ph.hash(password)
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return bcrypt.checkpw(plain.encode(), hashed.encode())
+    # Argon2 hashes start with $argon2
+    if hashed.startswith("$argon2"):
+        try:
+            return _ph.verify(hashed, plain)
+        except argon2.exceptions.VerifyMismatchError:
+            return False
+    # Legacy bcrypt fallback
+    if bcrypt.checkpw(plain.encode(), hashed.encode()):
+        return True
+    return False
+
+
+def needs_rehash(hashed: str) -> bool:
+    """True if hash is legacy bcrypt and should be upgraded to argon2."""
+    return not hashed.startswith("$argon2")
 
 
 def create_access_token(

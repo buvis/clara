@@ -5,7 +5,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 
-from clara.auth.models import Vault, VaultMembership
+from clara.auth.models import User, Vault, VaultMembership
+from clara.auth.schemas import MemberInvite, MemberRead, MemberUpdate
 from clara.deps import CurrentUser, Db, require_role
 
 router = APIRouter()
@@ -70,4 +71,141 @@ async def delete_vault(
     if vault is None:
         raise HTTPException(status_code=404, detail="Vault not found")
     await db.delete(vault)
+    await db.flush()
+
+
+# --- Member management ---
+
+
+@router.get("/{vault_id}/members", response_model=list[MemberRead])
+async def list_members(
+    vault_id: uuid.UUID,
+    db: Db,
+    _: VaultMembership = require_role("owner", "admin", "member"),
+):
+    stmt = (
+        select(VaultMembership)
+        .where(VaultMembership.vault_id == vault_id)
+        .options()
+    )
+    result = await db.execute(stmt)
+    members = result.scalars().all()
+    out = []
+    for m in members:
+        user = await db.get(User, m.user_id)
+        if user:
+            out.append(
+                MemberRead(
+                    user_id=m.user_id,
+                    email=user.email,
+                    name=user.name,
+                    role=m.role,
+                    joined_at=m.created_at,
+                )
+            )
+    return out
+
+
+@router.post("/{vault_id}/members", response_model=MemberRead, status_code=201)
+async def invite_member(
+    vault_id: uuid.UUID,
+    body: MemberInvite,
+    db: Db,
+    _: VaultMembership = require_role("owner", "admin"),
+):
+    user = (
+        await db.execute(select(User).where(User.email == body.email))
+    ).scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    existing = (
+        await db.execute(
+            select(VaultMembership).where(
+                VaultMembership.user_id == user.id,
+                VaultMembership.vault_id == vault_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing:
+        raise HTTPException(status_code=409, detail="Already a member")
+    membership = VaultMembership(
+        user_id=user.id, vault_id=vault_id, role=body.role
+    )
+    db.add(membership)
+    await db.flush()
+    return MemberRead(
+        user_id=user.id,
+        email=user.email,
+        name=user.name,
+        role=membership.role,
+        joined_at=membership.created_at,
+    )
+
+
+@router.patch("/{vault_id}/members/{user_id}", response_model=MemberRead)
+async def update_member_role(
+    vault_id: uuid.UUID,
+    user_id: uuid.UUID,
+    body: MemberUpdate,
+    db: Db,
+    _: VaultMembership = require_role("owner", "admin"),
+):
+    stmt = select(VaultMembership).where(
+        VaultMembership.user_id == user_id,
+        VaultMembership.vault_id == vault_id,
+    )
+    membership = (await db.execute(stmt)).scalar_one_or_none()
+    if membership is None:
+        raise HTTPException(status_code=404, detail="Member not found")
+    # Prevent demoting sole owner
+    if membership.role == "owner" and body.role != "owner":
+        owner_count = (
+            await db.execute(
+                select(VaultMembership).where(
+                    VaultMembership.vault_id == vault_id,
+                    VaultMembership.role == "owner",
+                )
+            )
+        ).scalars().all()
+        if len(owner_count) <= 1:
+            raise HTTPException(status_code=400, detail="Cannot demote sole owner")
+    membership.role = body.role
+    await db.flush()
+    user = await db.get(User, user_id)
+    return MemberRead(
+        user_id=user_id,
+        email=user.email if user else "",
+        name=user.name if user else "",
+        role=membership.role,
+        joined_at=membership.created_at,
+    )
+
+
+@router.delete("/{vault_id}/members/{user_id}", status_code=204)
+async def remove_member(
+    vault_id: uuid.UUID,
+    user_id: uuid.UUID,
+    db: Db,
+    _: VaultMembership = require_role("owner", "admin"),
+):
+    stmt = select(VaultMembership).where(
+        VaultMembership.user_id == user_id,
+        VaultMembership.vault_id == vault_id,
+    )
+    membership = (await db.execute(stmt)).scalar_one_or_none()
+    if membership is None:
+        raise HTTPException(status_code=404, detail="Member not found")
+    # Cannot remove sole owner
+    if membership.role == "owner":
+        owner_count = (
+            await db.execute(
+                select(VaultMembership).where(
+                    VaultMembership.vault_id == vault_id,
+                    VaultMembership.role == "owner",
+                )
+            )
+        ).scalars().all()
+        if len(owner_count) <= 1:
+            raise HTTPException(status_code=400, detail="Cannot remove sole owner")
+    await db.delete(membership)
     await db.flush()
