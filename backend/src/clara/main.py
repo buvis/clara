@@ -56,6 +56,18 @@ def create_app() -> FastAPI:
         prefix="/api/v1/vaults/{vault_id}/notes",
         tags=["notes"],
     )
+    from clara.reminders.api import router as reminders_router
+    app.include_router(
+        reminders_router,
+        prefix="/api/v1/vaults/{vault_id}/reminders",
+        tags=["reminders"],
+    )
+    from clara.reminders.stay_in_touch_api import router as sit_router
+    app.include_router(
+        sit_router,
+        prefix="/api/v1/vaults/{vault_id}/contacts/{contact_id}/stay_in_touch",
+        tags=["stay-in-touch"],
+    )
 
     return app
 
