@@ -117,19 +117,25 @@ def _derive_encryption_key() -> bytes:
     ).digest()
 
 
+def _get_fernet():
+    from cryptography.fernet import Fernet
+
+    key = base64.urlsafe_b64encode(_derive_encryption_key())
+    return Fernet(key)
+
+
 def encrypt_totp_secret(secret: str) -> str:
-    key = _derive_encryption_key()
-    data = secret.encode()
-    encrypted = bytes(
-        byte ^ key[index % len(key)] for index, byte in enumerate(data)
-    )
-    return base64.urlsafe_b64encode(encrypted).decode()
+    return _get_fernet().encrypt(secret.encode()).decode()
 
 
 def decrypt_totp_secret(token: str) -> str:
-    key = _derive_encryption_key()
-    data = base64.urlsafe_b64decode(token.encode())
-    decrypted = bytes(
-        byte ^ key[index % len(key)] for index, byte in enumerate(data)
-    )
-    return decrypted.decode()
+    # Try Fernet first, fall back to legacy XOR for migration
+    try:
+        return _get_fernet().decrypt(token.encode()).decode()
+    except Exception:
+        key = _derive_encryption_key()
+        data = base64.urlsafe_b64decode(token.encode())
+        decrypted = bytes(
+            byte ^ key[index % len(key)] for index, byte in enumerate(data)
+        )
+        return decrypted.decode()

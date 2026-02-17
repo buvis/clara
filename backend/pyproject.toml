@@ -24,6 +24,7 @@ dependencies = [
     "qrcode[pil]>=7.4",
     "structlog>=24.0",
     "prometheus-fastapi-instrumentator>=7.0",
+    "cryptography>=46.0.5",
 ]
 
 [project.optional-dependencies]
