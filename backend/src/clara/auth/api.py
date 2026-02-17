@@ -130,7 +130,7 @@ async def forgot_password(body: ForgotPasswordRequest, db: Db):
     ).scalar_one_or_none()
     if user:
         token = create_reset_token(str(user.id))
-        logger.info("Password reset token for %s: %s", user.email, token)
+        logger.info("Password reset requested", extra={"user_id": str(user.id)})
     return {"ok": True}
 
 

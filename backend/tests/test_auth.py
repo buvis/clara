@@ -95,6 +95,25 @@ async def test_me_unauthenticated(client: AsyncClient):
     assert response.status_code == 401
 
 
+async def test_forgot_password_no_token_in_logs(
+    client: AsyncClient, user, vault, caplog,
+):
+    """Password reset must not log token or email in application logs."""
+    import logging
+
+    with caplog.at_level(logging.INFO, logger="clara"):
+        resp = await client.post(
+            "/api/v1/auth/forgot-password",
+            json={"email": user.email},
+        )
+    assert resp.status_code == 200
+    app_logs = [r for r in caplog.records if r.name.startswith("clara")]
+    for record in app_logs:
+        msg = record.getMessage().lower()
+        assert "token for" not in msg
+        assert user.email.lower() not in msg
+
+
 async def test_pat_read_scope_blocks_write(
     authenticated_client: AsyncClient, vault,
 ):
