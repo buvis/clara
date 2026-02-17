@@ -10,7 +10,7 @@
   import { Plus, Bell, BellOff } from 'lucide-svelte';
   import type { Reminder } from '$lib/types/models';
 
-  const vaultId = $derived(page.params.vaultId);
+  const vaultId = $derived(page.params.vaultId!);
 
   let showCreate = $state(false);
   let createForm = $state<ReminderCreateInput>({

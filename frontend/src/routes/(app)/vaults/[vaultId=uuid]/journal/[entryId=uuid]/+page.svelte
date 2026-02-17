@@ -10,8 +10,8 @@
   import { ArrowLeft, Pencil, Trash2, Save, X } from 'lucide-svelte';
   import type { JournalEntry } from '$lib/types/models';
 
-  const vaultId = $derived(page.params.vaultId);
-  const entryId = $derived(page.params.entryId);
+  const vaultId = $derived(page.params.vaultId!);
+  const entryId = $derived(page.params.entryId!);
 
   let entry = $state<JournalEntry | null>(null);
   let loading = $state(true);

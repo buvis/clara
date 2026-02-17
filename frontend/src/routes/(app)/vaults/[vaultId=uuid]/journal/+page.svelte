@@ -10,7 +10,7 @@
   import { Plus, BookOpen } from 'lucide-svelte';
   import type { JournalEntry } from '$lib/types/models';
 
-  const vaultId = $derived(page.params.vaultId);
+  const vaultId = $derived(page.params.vaultId!);
 
   let showCreate = $state(false);
   let createForm = $state<JournalEntryCreateInput>({

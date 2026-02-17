@@ -3,14 +3,14 @@
   import type { Snippet } from 'svelte';
 
   interface Props {
-    open: boolean;
+    open?: boolean;
     title: string;
     onclose: () => void;
     children: Snippet;
     footer?: Snippet;
   }
 
-  let { open, title, onclose, children, footer }: Props = $props();
+  let { open = true, title, onclose, children, footer }: Props = $props();
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') onclose();

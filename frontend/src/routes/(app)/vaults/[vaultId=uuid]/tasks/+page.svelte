@@ -10,7 +10,7 @@
   import { Plus, CheckCircle, Circle, CheckSquare } from 'lucide-svelte';
   import type { Task } from '$lib/types/models';
 
-  const vaultId = $derived(page.params.vaultId);
+  const vaultId = $derived(page.params.vaultId!);
 
   let showCreate = $state(false);
   let createForm = $state<TaskCreateInput>({ title: '' });

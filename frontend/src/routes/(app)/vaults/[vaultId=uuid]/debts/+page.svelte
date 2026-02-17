@@ -11,7 +11,7 @@
   import type { Debt } from '$lib/types/models';
   import { lookup } from '$state/lookup.svelte';
 
-  const vaultId = $derived(page.params.vaultId);
+  const vaultId = $derived(page.params.vaultId!);
 
   let showCreate = $state(false);
   let createForm = $state<DebtCreateInput>({ contact_id: '', direction: 'you_owe', amount: 0 });

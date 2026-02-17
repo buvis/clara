@@ -14,8 +14,8 @@
   import type { Contact, Activity, Task, Note, Gift, Debt } from '$lib/types/models';
   import type { PaginatedResponse } from '$lib/types/common';
 
-  const vaultId = $derived(page.params.vaultId);
-  const contactId = $derived(page.params.contactId);
+  const vaultId = $derived(page.params.vaultId!);
+  const contactId = $derived(page.params.contactId!);
 
   let contact = $state<Contact | null>(null);
   let loading = $state(true);

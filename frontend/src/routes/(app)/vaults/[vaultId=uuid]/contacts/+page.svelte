@@ -11,7 +11,7 @@
   import { Plus, Users } from 'lucide-svelte';
   import type { Contact } from '$lib/types/models';
 
-  const vaultId = $derived(page.params.vaultId);
+  const vaultId = $derived(page.params.vaultId!);
 
   let showCreate = $state(false);
   let createForm = $state<ContactCreateInput>({ first_name: '', last_name: '' });

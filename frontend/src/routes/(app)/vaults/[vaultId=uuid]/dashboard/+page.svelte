@@ -6,7 +6,7 @@
   import { Bell, CheckSquare, Users, ChevronRight } from 'lucide-svelte';
   import type { Reminder, Activity, Task, Contact } from '$lib/types/models';
 
-  const vaultId = $derived(page.params.vaultId);
+  const vaultId = $derived(page.params.vaultId!);
 
   let reminders = $state<Reminder[]>([]);
   let activities = $state<Activity[]>([]);
