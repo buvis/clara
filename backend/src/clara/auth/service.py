@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -61,7 +62,7 @@ class AuthService:
         if user is None or not verify_password(
             data.password, user.hashed_password
         ):
-            raise ValueError("Invalid credentials")
+            raise HTTPException(status_code=401, detail="Invalid credentials")
 
         access = create_access_token(str(user.id))
         refresh = create_refresh_token(str(user.id))

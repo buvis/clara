@@ -4,12 +4,14 @@ from fastapi.responses import JSONResponse
 
 from clara.config import get_settings
 from clara.exceptions import ConflictError, ForbiddenError, NotFoundError
+from clara.middleware import CSRFMiddleware
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title="CLARA", version="0.1.0")
 
+    app.add_middleware(CSRFMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,

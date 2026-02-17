@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, HTTPException, Request, Response
 
 from clara.auth.schemas import (
     AuthResponse,
@@ -9,8 +9,23 @@ from clara.auth.schemas import (
 from clara.auth.service import AuthService
 from clara.config import get_settings
 from clara.deps import CurrentUser, Db
+from clara.middleware import generate_csrf_token
+from clara.redis import redis_conn
 
 router = APIRouter()
+
+LOGIN_RATE_LIMIT = 5
+LOGIN_RATE_WINDOW = 60  # seconds
+
+
+def _check_login_rate(request: Request) -> None:
+    ip = request.client.host if request.client else "unknown"
+    key = f"rate:login:{ip}"
+    count = redis_conn.incr(key)
+    if count == 1:
+        redis_conn.expire(key, LOGIN_RATE_WINDOW)
+    if count > LOGIN_RATE_LIMIT:
+        raise HTTPException(status_code=429, detail="Too many login attempts")
 
 
 def _set_auth_cookies(response: Response, access: str, refresh: str) -> None:
@@ -28,6 +43,16 @@ def _set_auth_cookies(response: Response, access: str, refresh: str) -> None:
             samesite=settings.cookie_samesite,
             domain=settings.cookie_domain,
         )
+    # CSRF token — readable by JS (httponly=False)
+    response.set_cookie(
+        key="csrf_token",
+        value=generate_csrf_token(),
+        max_age=settings.access_token_expire_minutes * 60,
+        httponly=False,
+        secure=settings.cookie_secure,
+        samesite=settings.cookie_samesite,
+        domain=settings.cookie_domain,
+    )
 
 
 @router.post("/register", response_model=AuthResponse, status_code=201)
@@ -43,7 +68,8 @@ async def register(body: RegisterRequest, db: Db, response: Response):
 
 
 @router.post("/login", response_model=AuthResponse)
-async def login(body: LoginRequest, db: Db, response: Response):
+async def login(body: LoginRequest, db: Db, response: Response, request: Request):
+    _check_login_rate(request)
     svc = AuthService(db)
     user, access, refresh = await svc.login(body)
     _set_auth_cookies(response, access, refresh)

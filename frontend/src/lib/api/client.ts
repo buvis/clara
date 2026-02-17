@@ -24,6 +24,17 @@ class ApiClient {
       headers['Content-Type'] = 'application/json';
     }
 
+    // Send CSRF token for state-changing requests
+    if (method !== 'GET' && method !== 'HEAD') {
+      const csrf = document.cookie
+        .split('; ')
+        .find((c) => c.startsWith('csrf_token='))
+        ?.split('=')[1];
+      if (csrf) {
+        headers['x-csrf-token'] = csrf;
+      }
+    }
+
     const res = await fetch(url, {
       method,
       headers,
