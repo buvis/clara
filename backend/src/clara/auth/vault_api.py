@@ -226,7 +226,7 @@ async def remove_member(
 async def get_vault_settings(
     vault_id: uuid.UUID,
     db: Db,
-    _: VaultMembership = require_role("owner", "admin", "member"),
+    _: VaultMembership = require_role("owner", "admin"),
 ):
     stmt = select(VaultSettings).where(VaultSettings.vault_id == vault_id)
     settings = (await db.execute(stmt)).scalar_one_or_none()

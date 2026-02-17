@@ -42,12 +42,14 @@ def _membership_rows(
 
 
 def _build_digest_html(user_name: str, items: list[str], title: str) -> str:
-    list_items = "".join(f"<li>{item}</li>" for item in items)
-    greeting = user_name or "there"
+    from html import escape
+
+    list_items = "".join(f"<li>{escape(item)}</li>" for item in items)
+    greeting = escape(user_name) if user_name else "there"
     return (
         "<html><body>"
         f"<p>Hi {greeting},</p>"
-        f"<p>{title}</p>"
+        f"<p>{escape(title)}</p>"
         f"<ul>{list_items}</ul>"
         "<p>– CLARA</p>"
         "</body></html>"
