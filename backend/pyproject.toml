@@ -18,6 +18,7 @@ dependencies = [
     "rq>=2.0",
     "python-multipart>=0.0.20",
     "aiofiles>=24.0",
+    "python-dateutil>=2.9",
     "vobject>=0.9",
     "pyotp>=2.9",
     "qrcode[pil]>=7.4",

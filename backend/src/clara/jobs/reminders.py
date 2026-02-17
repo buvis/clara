@@ -1,9 +1,20 @@
 from datetime import date, timedelta
 
+from dateutil.relativedelta import relativedelta
 from sqlalchemy import select
 
 from clara.jobs.sync_db import get_sync_session
 from clara.reminders.models import Reminder, StayInTouchConfig
+
+
+def _next_date(today: date, freq: str, n: int) -> date:
+    if freq == "week":
+        return today + timedelta(weeks=n)
+    if freq == "month":
+        return today + relativedelta(months=n)
+    if freq == "year":
+        return today + relativedelta(years=n)
+    return today + timedelta(days=30 * n)
 
 
 def evaluate_reminders():
@@ -22,9 +33,9 @@ def evaluate_reminders():
             if r.frequency_type == "one_time":
                 r.status = "completed"
             else:
-                delta_map = {"week": 7, "month": 30, "year": 365}
-                days = delta_map.get(r.frequency_type, 30) * r.frequency_number
-                r.next_expected_date = today + timedelta(days=days)
+                r.next_expected_date = _next_date(
+                    today, r.frequency_type, r.frequency_number
+                )
         session.commit()
     finally:
         session.close()
