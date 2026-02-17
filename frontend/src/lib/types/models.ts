@@ -219,3 +219,134 @@ export interface FileRecord {
   size_bytes: number;
   created_at: string;
 }
+
+// --- Notifications ---
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  vault_id: string;
+  title: string;
+  body: string;
+  link: string | null;
+  read: boolean;
+  created_at: string;
+}
+
+// --- Vault Settings ---
+
+export interface VaultSettings {
+  vault_id: string;
+  language: string;
+  date_format: string;
+  time_format: string;
+  timezone: string;
+  feature_flags: string;
+}
+
+// --- Templates ---
+
+export interface Template {
+  id: string;
+  vault_id: string;
+  name: string;
+  pages: string;
+  modules: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- Custom Fields ---
+
+export interface CustomField {
+  id: string;
+  vault_id: string;
+  name: string;
+  field_type: string;
+  options: string;
+  module: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- Members ---
+
+export interface Member {
+  user_id: string;
+  email: string;
+  name: string;
+  role: string;
+  joined_at: string;
+}
+
+// --- Contact Sub-resources ---
+
+export interface ContactMethod {
+  id: string;
+  vault_id: string;
+  contact_id: string;
+  type: string;
+  label: string;
+  value: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Address {
+  id: string;
+  vault_id: string;
+  contact_id: string;
+  label: string;
+  line1: string;
+  line2: string | null;
+  city: string;
+  postal_code: string;
+  country: string;
+  geo_location: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Pet {
+  id: string;
+  vault_id: string;
+  contact_id: string;
+  name: string;
+  species: string;
+  birthdate: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Tag {
+  id: string;
+  vault_id: string;
+  name: string;
+  color: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ContactRelationship {
+  id: string;
+  vault_id: string;
+  contact_id: string;
+  other_contact_id: string;
+  relationship_type_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- PATs ---
+
+export interface PersonalAccessToken {
+  id: string;
+  name: string;
+  token_prefix: string;
+  scopes: string[];
+  expires_at: string | null;
+  last_used_at: string | null;
+  created_at: string;
+}
