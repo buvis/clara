@@ -41,9 +41,9 @@ class ContactRepository(BaseRepository[Contact]):
                 )
             )
         if tag_ids:
-            stmt = stmt.join(contact_tags, contact_tags.c.contact_id == Contact.id).where(
-                contact_tags.c.tag_id.in_(tag_ids)
-            )
+            stmt = stmt.join(
+                contact_tags, contact_tags.c.contact_id == Contact.id
+            ).where(contact_tags.c.tag_id.in_(tag_ids))
         if favorites is not None:
             stmt = stmt.where(Contact.favorite.is_(favorites))
         if birthday_from is not None:
@@ -80,7 +80,11 @@ class ContactRepository(BaseRepository[Contact]):
         )
         if tag_ids:
             items_stmt = items_stmt.distinct()
-        items_stmt = items_stmt.offset(offset).limit(limit).order_by(Contact.created_at.desc())
+        items_stmt = (
+            items_stmt.offset(offset)
+            .limit(limit)
+            .order_by(Contact.created_at.desc())
+        )
         result = await self.session.execute(items_stmt)
         return result.scalars().all(), total
 

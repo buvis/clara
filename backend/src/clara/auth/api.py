@@ -129,7 +129,7 @@ async def forgot_password(body: ForgotPasswordRequest, db: Db):
         await db.execute(select(User).where(User.email == body.email))
     ).scalar_one_or_none()
     if user:
-        token = create_reset_token(str(user.id))
+        create_reset_token(str(user.id))  # TODO: email token to user
         logger.info("Password reset requested", extra={"user_id": str(user.id)})
     return {"ok": True}
 

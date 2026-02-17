@@ -1,12 +1,11 @@
 import json
 import uuid
+from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from datetime import UTC, datetime
 
 from clara.auth.models import PersonalAccessToken, User, VaultMembership
 from clara.auth.security import decode_access_token, verify_password
