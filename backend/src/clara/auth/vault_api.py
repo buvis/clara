@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 
 from clara.auth.models import Vault, VaultMembership
-from clara.deps import CurrentUser, Db
+from clara.deps import CurrentUser, Db, require_role
 
 router = APIRouter()
 
@@ -35,7 +35,7 @@ async def list_vaults(user: CurrentUser, db: Db):
 
 @router.post("", response_model=VaultRead, status_code=201)
 async def create_vault(body: VaultCreate, user: CurrentUser, db: Db):
-    vault = Vault(name=body.name)
+    vault = Vault(name=body.name, owner_user_id=user.id)
     db.add(vault)
     await db.flush()
     membership = VaultMembership(
@@ -58,3 +58,16 @@ async def get_vault(vault_id: uuid.UUID, user: CurrentUser, db: Db):
     if vault is None:
         raise HTTPException(status_code=404, detail="Vault not found")
     return VaultRead.model_validate(vault)
+
+
+@router.delete("/{vault_id}", status_code=204)
+async def delete_vault(
+    vault_id: uuid.UUID,
+    db: Db,
+    _: VaultMembership = require_role("owner"),
+):
+    vault = await db.get(Vault, vault_id)
+    if vault is None:
+        raise HTTPException(status_code=404, detail="Vault not found")
+    await db.delete(vault)
+    await db.flush()

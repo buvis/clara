@@ -64,3 +64,19 @@ async def get_vault_membership(
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
 VaultAccess = Annotated[VaultMembership, Depends(get_vault_membership)]
+
+
+def require_role(*roles: str):
+    """Dependency factory: checks membership role against allowed roles."""
+
+    async def _check(
+        membership: VaultMembership = Depends(get_vault_membership),
+    ) -> VaultMembership:
+        if membership.role not in roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Requires role: {', '.join(roles)}",
+            )
+        return membership
+
+    return Depends(_check)

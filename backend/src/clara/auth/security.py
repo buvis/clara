@@ -40,7 +40,7 @@ def create_refresh_token(subject: str) -> str:
     )
 
 
-def decode_access_token(token: str) -> dict | None:
+def _decode_token(token: str, expected_type: str) -> dict | None:
     settings = get_settings()
     try:
         payload = jwt.decode(
@@ -48,8 +48,16 @@ def decode_access_token(token: str) -> dict | None:
             settings.secret_key.get_secret_value(),
             algorithms=[settings.jwt_algorithm],
         )
-        if payload.get("type") != "access":
+        if payload.get("type") != expected_type:
             return None
         return payload
     except jwt.PyJWTError:
         return None
+
+
+def decode_access_token(token: str) -> dict | None:
+    return _decode_token(token, "access")
+
+
+def decode_refresh_token(token: str) -> dict | None:
+    return _decode_token(token, "refresh")

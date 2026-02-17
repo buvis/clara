@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, HTTPException, Request, Response
 
 from clara.auth.schemas import (
@@ -5,6 +7,11 @@ from clara.auth.schemas import (
     LoginRequest,
     RegisterRequest,
     UserRead,
+)
+from clara.auth.security import (
+    create_access_token,
+    create_refresh_token,
+    decode_refresh_token,
 )
 from clara.auth.service import AuthService
 from clara.config import get_settings
@@ -73,6 +80,28 @@ async def login(body: LoginRequest, db: Db, response: Response, request: Request
     svc = AuthService(db)
     user, access, refresh = await svc.login(body)
     _set_auth_cookies(response, access, refresh)
+    return AuthResponse(
+        user=UserRead.model_validate(user),
+        access_token=access,
+        vault_id=user.default_vault_id,
+    )
+
+
+@router.post("/refresh", response_model=AuthResponse)
+async def refresh(request: Request, db: Db, response: Response):
+    token = request.cookies.get("refresh_token")
+    if not token:
+        raise HTTPException(status_code=401, detail="No refresh token")
+    payload = decode_refresh_token(token)
+    if payload is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+    from clara.auth.models import User
+    user = await db.get(User, uuid.UUID(payload["sub"]))
+    if user is None:
+        raise HTTPException(status_code=401, detail="User not found")
+    access = create_access_token(str(user.id))
+    new_refresh = create_refresh_token(str(user.id))
+    _set_auth_cookies(response, access, new_refresh)
     return AuthResponse(
         user=UserRead.model_validate(user),
         access_token=access,
