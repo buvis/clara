@@ -18,6 +18,7 @@ class ContactRepository(BaseRepository[Contact]):
             selectinload(Contact.addresses),
             selectinload(Contact.tags),
             selectinload(Contact.pets),
+            selectinload(Contact.relationships),
         )
 
     def _apply_filters(

@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict
 from clara.contacts.sub_schemas import (
     AddressRead,
     ContactMethodRead,
+    ContactRelationshipRead,
     PetRead,
     TagRead,
 )
@@ -29,6 +30,7 @@ class ContactRead(BaseModel):
     addresses: list[AddressRead]
     tags: list[TagRead]
     pets: list[PetRead]
+    relationships: list[ContactRelationshipRead]
     created_at: datetime
     updated_at: datetime
 

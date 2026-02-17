@@ -43,7 +43,10 @@ async def test_get_contact(authenticated_client: AsyncClient, vault: Vault):
         f"/api/v1/vaults/{vault.id}/contacts/{contact_id}"
     )
     assert response.status_code == 200
-    assert response.json()["id"] == contact_id
+    data = response.json()
+    assert data["id"] == contact_id
+    assert "relationships" in data
+    assert data["relationships"] == []
 
 
 async def test_update_contact(authenticated_client: AsyncClient, vault: Vault):

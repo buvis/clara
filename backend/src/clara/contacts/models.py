@@ -63,6 +63,10 @@ class Contact(VaultScopedModel):
     pets: Mapped[list["Pet"]] = relationship(
         back_populates="contact", cascade="all, delete-orphan"
     )
+    relationships: Mapped[list["ContactRelationship"]] = relationship(
+        foreign_keys="ContactRelationship.contact_id",
+        cascade="all, delete-orphan",
+    )
 
     @hybrid_property
     def full_name(self) -> str:
@@ -128,6 +132,12 @@ class ContactRelationship(VaultScopedModel):
     relationship_type_id: Mapped[uuid.UUID] = mapped_column(
         Uuid, ForeignKey("relationship_types.id")
     )
+
+    contact: Mapped["Contact"] = relationship(
+        foreign_keys=[contact_id], overlaps="relationships"
+    )
+    other_contact: Mapped["Contact"] = relationship(foreign_keys=[other_contact_id])
+    relationship_type: Mapped["RelationshipType"] = relationship()
 
 
 class Tag(VaultScopedModel):
