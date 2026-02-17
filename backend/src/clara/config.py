@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     cors_origins: list[str] = []
 
     storage_path: str = "./uploads"
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: SecretStr | None = None
+    email_from: str = "noreply@clara.local"
 
     @property
     def async_database_url(self) -> str:
