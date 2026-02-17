@@ -3,6 +3,13 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from clara.contacts.sub_schemas import (
+    AddressRead,
+    ContactMethodRead,
+    PetRead,
+    TagRead,
+)
+
 
 class ContactRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -18,6 +25,10 @@ class ContactRead(BaseModel):
     favorite: bool
     photo_file_id: uuid.UUID | None
     template_id: uuid.UUID | None
+    contact_methods: list[ContactMethodRead]
+    addresses: list[AddressRead]
+    tags: list[TagRead]
+    pets: list[PetRead]
     created_at: datetime
     updated_at: datetime
 

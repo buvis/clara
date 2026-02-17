@@ -46,6 +46,44 @@ def create_app() -> FastAPI:
         prefix="/api/v1/vaults/{vault_id}/contacts",
         tags=["contacts"],
     )
+    from clara.contacts.sub_api import (
+        addresses_router,
+        contact_tags_router,
+        methods_router,
+        pets_router,
+        relationships_router,
+        vault_tags_router,
+    )
+    app.include_router(
+        methods_router,
+        prefix="/api/v1/vaults/{vault_id}/contacts/{contact_id}/methods",
+        tags=["contacts"],
+    )
+    app.include_router(
+        addresses_router,
+        prefix="/api/v1/vaults/{vault_id}/contacts/{contact_id}/addresses",
+        tags=["contacts"],
+    )
+    app.include_router(
+        relationships_router,
+        prefix="/api/v1/vaults/{vault_id}/contacts/{contact_id}/relationships",
+        tags=["contacts"],
+    )
+    app.include_router(
+        pets_router,
+        prefix="/api/v1/vaults/{vault_id}/contacts/{contact_id}/pets",
+        tags=["contacts"],
+    )
+    app.include_router(
+        contact_tags_router,
+        prefix="/api/v1/vaults/{vault_id}/contacts/{contact_id}/tags",
+        tags=["contacts"],
+    )
+    app.include_router(
+        vault_tags_router,
+        prefix="/api/v1/vaults/{vault_id}/tags",
+        tags=["contacts"],
+    )
     from clara.activities.api import router as activities_router
     app.include_router(
         activities_router,
