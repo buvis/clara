@@ -44,3 +44,21 @@ class VaultMembership(TimestampMixin, SoftDeleteMixin, Base):
 
     user: Mapped[User] = relationship(back_populates="memberships")
     vault: Mapped[Vault] = relationship(back_populates="members")
+
+
+class TotpDevice(TimestampMixin, Base):
+    __tablename__ = "totp_devices"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"))
+    secret: Mapped[str] = mapped_column(String(255))
+    confirmed: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class RecoveryCode(TimestampMixin, Base):
+    __tablename__ = "recovery_codes"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"))
+    code_hash: Mapped[str] = mapped_column(String(255))
+    used: Mapped[bool] = mapped_column(Boolean, default=False)

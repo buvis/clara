@@ -2,6 +2,11 @@ export type { PaginatedResponse, PaginationMeta, ApiError } from '$lib/types/com
 export type {
   User,
   AuthResponse,
+  LoginResponse,
+  TwoFactorChallengeResponse,
+  TwoFactorSetupResponse,
+  TwoFactorVerifyRequest,
+  TwoFactorConfirmRequest,
   Vault,
   Contact,
   ContactCreate,

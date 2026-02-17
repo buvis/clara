@@ -1,3 +1,5 @@
+import base64
+import hashlib
 from datetime import UTC, datetime, timedelta
 
 import argon2
@@ -67,6 +69,16 @@ def create_reset_token(user_id: str) -> str:
     )
 
 
+def create_2fa_temp_token(user_id: str) -> str:
+    settings = get_settings()
+    expire = datetime.now(UTC) + timedelta(minutes=5)
+    return jwt.encode(
+        {"sub": user_id, "exp": expire, "type": "2fa_temp"},
+        settings.secret_key.get_secret_value(),
+        algorithm=settings.jwt_algorithm,
+    )
+
+
 def _decode_token(token: str, expected_type: str) -> dict | None:
     settings = get_settings()
     try:
@@ -92,3 +104,32 @@ def decode_refresh_token(token: str) -> dict | None:
 
 def decode_reset_token(token: str) -> dict | None:
     return _decode_token(token, "reset")
+
+
+def decode_2fa_temp_token(token: str) -> dict | None:
+    return _decode_token(token, "2fa_temp")
+
+
+def _derive_encryption_key() -> bytes:
+    settings = get_settings()
+    return hashlib.sha256(
+        settings.secret_key.get_secret_value().encode()
+    ).digest()
+
+
+def encrypt_totp_secret(secret: str) -> str:
+    key = _derive_encryption_key()
+    data = secret.encode()
+    encrypted = bytes(
+        byte ^ key[index % len(key)] for index, byte in enumerate(data)
+    )
+    return base64.urlsafe_b64encode(encrypted).decode()
+
+
+def decrypt_totp_secret(token: str) -> str:
+    key = _derive_encryption_key()
+    data = base64.urlsafe_b64decode(token.encode())
+    decrypted = bytes(
+        byte ^ key[index % len(key)] for index, byte in enumerate(data)
+    )
+    return decrypted.decode()

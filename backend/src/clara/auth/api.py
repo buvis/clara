@@ -1,24 +1,40 @@
+import base64
+import io
 import logging
+import secrets
+import string
 import uuid
 
+import pyotp
+import qrcode
 from fastapi import APIRouter, HTTPException, Request, Response
 from sqlalchemy import select
 
+from clara.auth.models import RecoveryCode, TotpDevice, User
 from clara.auth.schemas import (
     AuthResponse,
     ForgotPasswordRequest,
+    LoginResponse,
     LoginRequest,
     RegisterRequest,
     ResetPasswordRequest,
+    TwoFactorChallengeResponse,
+    TwoFactorConfirmRequest,
+    TwoFactorSetupResponse,
+    TwoFactorVerifyRequest,
     UserRead,
 )
 from clara.auth.security import (
     create_access_token,
     create_refresh_token,
     create_reset_token,
+    decode_2fa_temp_token,
     decode_refresh_token,
     decode_reset_token,
+    decrypt_totp_secret,
+    encrypt_totp_secret,
     hash_password,
+    verify_password,
 )
 from clara.auth.service import AuthService
 from clara.config import get_settings
@@ -82,23 +98,30 @@ async def register(body: RegisterRequest, db: Db, response: Response):
     )
 
 
-@router.post("/login", response_model=AuthResponse)
+@router.post("/login", response_model=LoginResponse)
 async def login(body: LoginRequest, db: Db, response: Response, request: Request):
     _check_login_rate(request)
     svc = AuthService(db)
-    user, access, refresh = await svc.login(body)
-    _set_auth_cookies(response, access, refresh)
+    result = await svc.login(body)
+    if result.requires_2fa:
+        if not result.temp_token:
+            raise HTTPException(status_code=500, detail="Login failed")
+        return TwoFactorChallengeResponse(
+            requires_2fa=True,
+            temp_token=result.temp_token,
+        )
+    if result.access is None or result.refresh is None:
+        raise HTTPException(status_code=500, detail="Login failed")
+    _set_auth_cookies(response, result.access, result.refresh)
     return AuthResponse(
-        user=UserRead.model_validate(user),
-        access_token=access,
-        vault_id=user.default_vault_id,
+        user=UserRead.model_validate(result.user),
+        access_token=result.access,
+        vault_id=result.user.default_vault_id,
     )
 
 
 @router.post("/forgot-password")
 async def forgot_password(body: ForgotPasswordRequest, db: Db):
-    from clara.auth.models import User
-
     user = (
         await db.execute(select(User).where(User.email == body.email))
     ).scalar_one_or_none()
@@ -115,8 +138,6 @@ async def reset_password(body: ResetPasswordRequest, db: Db):
         raise HTTPException(
             status_code=400, detail="Invalid or expired reset token"
         )
-    from clara.auth.models import User
-
     user = await db.get(User, uuid.UUID(payload["sub"]))
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
@@ -133,7 +154,6 @@ async def refresh(request: Request, db: Db, response: Response):
     payload = decode_refresh_token(token)
     if payload is None:
         raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
-    from clara.auth.models import User
     user = await db.get(User, uuid.UUID(payload["sub"]))
     if user is None:
         raise HTTPException(status_code=401, detail="User not found")
@@ -157,3 +177,191 @@ async def logout(response: Response):
 @router.get("/me", response_model=UserRead)
 async def me(user: CurrentUser):
     return UserRead.model_validate(user)
+
+
+def _generate_recovery_codes(count: int = 8) -> list[str]:
+    alphabet = string.ascii_uppercase + string.digits
+    return [
+        "".join(secrets.choice(alphabet) for _ in range(8))
+        for _ in range(count)
+    ]
+
+
+def _build_qr_data_url(provisioning_uri: str) -> str:
+    image = qrcode.make(provisioning_uri)
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    encoded = base64.b64encode(buffer.getvalue()).decode()
+    return f"data:image/png;base64,{encoded}"
+
+
+@router.post("/2fa/setup", response_model=TwoFactorSetupResponse)
+async def two_factor_setup(user: CurrentUser, db: Db):
+    existing_confirmed = (
+        await db.execute(
+            select(TotpDevice).where(
+                TotpDevice.user_id == user.id,
+                TotpDevice.confirmed.is_(True),
+            )
+        )
+    ).scalar_one_or_none()
+    if existing_confirmed:
+        raise HTTPException(status_code=400, detail="2FA already enabled")
+
+    await db.execute(
+        RecoveryCode.__table__.delete().where(RecoveryCode.user_id == user.id)
+    )
+    await db.execute(
+        TotpDevice.__table__.delete().where(
+            TotpDevice.user_id == user.id,
+            TotpDevice.confirmed.is_(False),
+        )
+    )
+
+    secret = pyotp.random_base32()
+    encrypted_secret = encrypt_totp_secret(secret)
+    device = TotpDevice(
+        user_id=user.id,
+        secret=encrypted_secret,
+        confirmed=False,
+    )
+    db.add(device)
+
+    provisioning_uri = pyotp.totp.TOTP(secret).provisioning_uri(
+        user.email,
+        issuer_name="CLARA",
+    )
+
+    recovery_codes = _generate_recovery_codes()
+    for code in recovery_codes:
+        db.add(
+            RecoveryCode(
+                user_id=user.id,
+                code_hash=hash_password(code),
+                used=False,
+            )
+        )
+
+    await db.flush()
+    return TwoFactorSetupResponse(
+        provisioning_uri=provisioning_uri,
+        qr_data_url=_build_qr_data_url(provisioning_uri),
+        recovery_codes=recovery_codes,
+    )
+
+
+@router.post("/2fa/confirm")
+async def two_factor_confirm(
+    body: TwoFactorConfirmRequest, user: CurrentUser, db: Db
+):
+    device = (
+        await db.execute(
+            select(TotpDevice).where(
+                TotpDevice.user_id == user.id,
+                TotpDevice.confirmed.is_(False),
+            )
+        )
+    ).scalar_one_or_none()
+    if device is None:
+        raise HTTPException(status_code=400, detail="No pending 2FA setup")
+
+    secret = decrypt_totp_secret(device.secret)
+    if not pyotp.TOTP(secret).verify(body.code):
+        raise HTTPException(status_code=400, detail="Invalid verification code")
+
+    device.confirmed = True
+    await db.flush()
+    return {"ok": True}
+
+
+@router.post("/2fa/verify", response_model=AuthResponse)
+async def two_factor_verify(body: TwoFactorVerifyRequest, db: Db, response: Response):
+    payload = decode_2fa_temp_token(body.temp_token)
+    if payload is None:
+        raise HTTPException(
+            status_code=400, detail="Invalid or expired 2FA token"
+        )
+
+    user = await db.get(User, uuid.UUID(payload["sub"]))
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    device = (
+        await db.execute(
+            select(TotpDevice).where(
+                TotpDevice.user_id == user.id,
+                TotpDevice.confirmed.is_(True),
+            )
+        )
+    ).scalar_one_or_none()
+    if device is None:
+        raise HTTPException(status_code=400, detail="2FA not configured")
+
+    secret = decrypt_totp_secret(device.secret)
+    if not pyotp.TOTP(secret).verify(body.code):
+        raise HTTPException(status_code=400, detail="Invalid verification code")
+
+    access = create_access_token(str(user.id))
+    refresh = create_refresh_token(str(user.id))
+    _set_auth_cookies(response, access, refresh)
+    return AuthResponse(
+        user=UserRead.model_validate(user),
+        access_token=access,
+        vault_id=user.default_vault_id,
+    )
+
+
+@router.post("/2fa/recovery", response_model=AuthResponse)
+async def two_factor_recovery(
+    body: TwoFactorVerifyRequest, db: Db, response: Response
+):
+    payload = decode_2fa_temp_token(body.temp_token)
+    if payload is None:
+        raise HTTPException(
+            status_code=400, detail="Invalid or expired 2FA token"
+        )
+
+    user = await db.get(User, uuid.UUID(payload["sub"]))
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    codes = (
+        await db.execute(
+            select(RecoveryCode).where(
+                RecoveryCode.user_id == user.id,
+                RecoveryCode.used.is_(False),
+            )
+        )
+    ).scalars().all()
+    matched = None
+    for code in codes:
+        if verify_password(body.code, code.code_hash):
+            matched = code
+            break
+
+    if matched is None:
+        raise HTTPException(status_code=400, detail="Invalid recovery code")
+
+    matched.used = True
+    await db.flush()
+
+    access = create_access_token(str(user.id))
+    refresh = create_refresh_token(str(user.id))
+    _set_auth_cookies(response, access, refresh)
+    return AuthResponse(
+        user=UserRead.model_validate(user),
+        access_token=access,
+        vault_id=user.default_vault_id,
+    )
+
+
+@router.delete("/2fa")
+async def two_factor_disable(user: CurrentUser, db: Db):
+    await db.execute(
+        TotpDevice.__table__.delete().where(TotpDevice.user_id == user.id)
+    )
+    await db.execute(
+        RecoveryCode.__table__.delete().where(RecoveryCode.user_id == user.id)
+    )
+    await db.flush()
+    return {"ok": True}

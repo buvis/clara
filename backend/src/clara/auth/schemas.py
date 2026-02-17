@@ -56,6 +56,29 @@ class AuthResponse(BaseModel):
     vault_id: uuid.UUID | None
 
 
+class TwoFactorChallengeResponse(BaseModel):
+    requires_2fa: bool
+    temp_token: str
+
+
+class TwoFactorSetupResponse(BaseModel):
+    provisioning_uri: str
+    qr_data_url: str
+    recovery_codes: list[str]
+
+
+class TwoFactorVerifyRequest(BaseModel):
+    temp_token: str
+    code: str
+
+
+class TwoFactorConfirmRequest(BaseModel):
+    code: str
+
+
+LoginResponse = AuthResponse | TwoFactorChallengeResponse
+
+
 class MemberRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     user_id: uuid.UUID

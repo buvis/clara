@@ -1,5 +1,5 @@
 import { api } from '$api/client';
-import type { User, AuthResponse } from '$api/types';
+import type { User, AuthResponse, LoginResponse } from '$api/types';
 
 class AuthState {
   user = $state<User | null>(null);
@@ -19,9 +19,11 @@ class AuthState {
     }
   }
 
-  async login(email: string, password: string): Promise<AuthResponse> {
-    const res = await api.post<AuthResponse>('/auth/login', { email, password });
-    this.user = res.user;
+  async login(email: string, password: string): Promise<LoginResponse> {
+    const res = await api.post<LoginResponse>('/auth/login', { email, password });
+    if ('user' in res) {
+      this.user = res.user;
+    }
     return res;
   }
 
@@ -34,6 +36,17 @@ class AuthState {
   async logout(): Promise<void> {
     await api.post('/auth/logout');
     this.user = null;
+  }
+
+  async verifyTwoFactor(
+    tempToken: string,
+    code: string,
+    useRecovery = false
+  ): Promise<AuthResponse> {
+    const path = useRecovery ? '/auth/2fa/recovery' : '/auth/2fa/verify';
+    const res = await api.post<AuthResponse>(path, { temp_token: tempToken, code });
+    this.user = res.user;
+    return res;
   }
 }
 

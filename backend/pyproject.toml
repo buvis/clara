@@ -19,6 +19,8 @@ dependencies = [
     "python-multipart>=0.0.20",
     "aiofiles>=24.0",
     "vobject>=0.9",
+    "pyotp>=2.9",
+    "qrcode[pil]>=7.4",
 ]
 
 [project.optional-dependencies]

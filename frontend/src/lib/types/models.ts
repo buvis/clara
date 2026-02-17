@@ -15,6 +15,28 @@ export interface AuthResponse {
   vault_id: string | null;
 }
 
+export interface TwoFactorChallengeResponse {
+  requires_2fa: boolean;
+  temp_token: string;
+}
+
+export type LoginResponse = AuthResponse | TwoFactorChallengeResponse;
+
+export interface TwoFactorSetupResponse {
+  provisioning_uri: string;
+  qr_data_url: string;
+  recovery_codes: string[];
+}
+
+export interface TwoFactorVerifyRequest {
+  temp_token: string;
+  code: string;
+}
+
+export interface TwoFactorConfirmRequest {
+  code: string;
+}
+
 // --- Vaults ---
 
 export interface Vault {
