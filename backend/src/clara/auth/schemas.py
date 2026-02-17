@@ -21,6 +21,8 @@ class UserRead(BaseModel):
     email: str
     name: str
     is_active: bool
+    locale: str
+    timezone: str
     default_vault_id: uuid.UUID | None
     created_at: datetime
 

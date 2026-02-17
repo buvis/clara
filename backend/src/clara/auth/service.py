@@ -40,6 +40,8 @@ class AuthService:
         self.session.add(user)
         await self.session.flush()
 
+        vault.owner_user_id = user.id
+
         membership = VaultMembership(
             user_id=user.id, vault_id=vault.id, role="owner"
         )

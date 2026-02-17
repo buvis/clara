@@ -16,6 +16,8 @@ class ContactRead(BaseModel):
     pronouns: str | None
     notes_summary: str | None
     favorite: bool
+    photo_file_id: uuid.UUID | None
+    template_id: uuid.UUID | None
     created_at: datetime
     updated_at: datetime
 

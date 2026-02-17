@@ -1,10 +1,38 @@
 import uuid
 from datetime import date
 
-from sqlalchemy import Boolean, Date, ForeignKey, String, Text, Uuid
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    ForeignKey,
+    String,
+    Table,
+    Text,
+    Uuid,
+    func,
+)
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from clara.base.model import VaultScopedModel
+from clara.base.model import Base, VaultScopedModel
+
+contact_tags = Table(
+    "contact_tags",
+    Base.metadata,
+    Column(
+        "contact_id",
+        Uuid,
+        ForeignKey("contacts.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+    Column(
+        "tag_id",
+        Uuid,
+        ForeignKey("tags.id", ondelete="CASCADE"),
+        primary_key=True,
+    ),
+)
 
 
 class Contact(VaultScopedModel):
@@ -30,11 +58,20 @@ class Contact(VaultScopedModel):
         back_populates="contact", cascade="all, delete-orphan"
     )
     tags: Mapped[list["Tag"]] = relationship(
-        secondary="contact_tags", back_populates="contacts"
+        secondary=contact_tags, back_populates="contacts"
     )
     pets: Mapped[list["Pet"]] = relationship(
         back_populates="contact", cascade="all, delete-orphan"
     )
+
+    @hybrid_property
+    def full_name(self) -> str:
+        return f"{self.first_name} {self.last_name}".strip()
+
+    @full_name.inplace.expression
+    @classmethod
+    def _full_name_expr(cls):
+        return func.concat(cls.first_name, " ", cls.last_name)
 
 
 class ContactMethod(VaultScopedModel):
@@ -62,6 +99,7 @@ class Address(VaultScopedModel):
     city: Mapped[str] = mapped_column(String(255), default="")
     postal_code: Mapped[str] = mapped_column(String(50), default="")
     country: Mapped[str] = mapped_column(String(100), default="")
+    geo_location: Mapped[str | None] = mapped_column(String(50), default=None)
 
     contact: Mapped[Contact] = relationship(back_populates="addresses")
 
@@ -70,7 +108,12 @@ class RelationshipType(VaultScopedModel):
     __tablename__ = "relationship_types"
 
     name: Mapped[str] = mapped_column(String(100))
-    inverse_name: Mapped[str] = mapped_column(String(100))
+    inverse_type_id: Mapped[uuid.UUID | None] = mapped_column(
+        Uuid, ForeignKey("relationship_types.id"), nullable=True
+    )
+    inverse_type: Mapped["RelationshipType | None"] = relationship(
+        remote_side="RelationshipType.id"
+    )
 
 
 class ContactRelationship(VaultScopedModel):
@@ -94,18 +137,7 @@ class Tag(VaultScopedModel):
     color: Mapped[str] = mapped_column(String(7), default="#6b7280")
 
     contacts: Mapped[list[Contact]] = relationship(
-        secondary="contact_tags", back_populates="tags"
-    )
-
-
-class ContactTag(VaultScopedModel):
-    __tablename__ = "contact_tags"
-
-    contact_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("contacts.id")
-    )
-    tag_id: Mapped[uuid.UUID] = mapped_column(
-        Uuid, ForeignKey("tags.id")
+        secondary=contact_tags, back_populates="tags"
     )
 
 
