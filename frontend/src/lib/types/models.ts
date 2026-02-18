@@ -261,11 +261,11 @@ export interface Template {
 export interface CustomField {
   id: string;
   vault_id: string;
+  scope: string;
   name: string;
-  field_type: string;
-  options: string;
-  module: string;
-  sort_order: number;
+  slug: string;
+  data_type: string;
+  config_json: string | null;
   created_at: string;
   updated_at: string;
 }

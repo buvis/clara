@@ -54,7 +54,7 @@
   let customFieldsLoading = $state(true);
   let showFieldModal = $state(false);
   let editFieldId = $state<string | null>(null);
-  let fieldForm = $state<CustomFieldCreateInput>({ name: '', field_type: 'text' });
+  let fieldForm = $state<CustomFieldCreateInput>({ scope: 'contact', name: '', slug: '', data_type: 'text' });
   let fieldSaving = $state(false);
 
   let relTypes = $state<RelationshipType[]>([]);
@@ -326,13 +326,13 @@
   // --- Custom Field CRUD ---
   function openFieldCreate() {
     editFieldId = null;
-    fieldForm = { name: '', field_type: 'text' };
+    fieldForm = { scope: 'contact', name: '', slug: '', data_type: 'text' };
     showFieldModal = true;
   }
 
   function openFieldEdit(cf: CustomField) {
     editFieldId = cf.id;
-    fieldForm = { name: cf.name, field_type: cf.field_type, options: cf.options, module: cf.module, sort_order: cf.sort_order };
+    fieldForm = { scope: cf.scope, name: cf.name, slug: cf.slug, data_type: cf.data_type, config_json: cf.config_json };
     showFieldModal = true;
   }
 
@@ -678,10 +678,9 @@
             <div class="group flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2">
               <div>
                 <p class="text-sm font-medium text-white">{cf.name}</p>
-                <p class="text-xs text-neutral-500">{cf.field_type}{cf.module ? ` · ${cf.module}` : ''}</p>
+                <p class="text-xs text-neutral-500">{cf.data_type} · {cf.scope} · {cf.slug}</p>
               </div>
               <div class="flex items-center gap-2">
-                <span class="text-xs text-neutral-500">#{cf.sort_order}</span>
                 <button onclick={() => openFieldEdit(cf)} class="text-neutral-600 opacity-0 transition hover:text-white group-hover:opacity-100"><Pencil size={14} /></button>
                 <button onclick={() => handleFieldDelete(cf.id)} class="text-neutral-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100"><Trash2 size={14} /></button>
               </div>
@@ -694,10 +693,19 @@
     {#if showFieldModal}
       <Modal title={editFieldId ? 'Edit Custom Field' : 'New Custom Field'} onclose={() => (showFieldModal = false)}>
         <form onsubmit={handleFieldSave} class="space-y-4">
-          <Input label="Name" bind:value={fieldForm.name} required />
           <div>
-            <label class="mb-1.5 block text-sm font-medium text-neutral-300">Field type</label>
-            <select bind:value={fieldForm.field_type} class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500">
+            <label class="mb-1.5 block text-sm font-medium text-neutral-300">Scope</label>
+            <select bind:value={fieldForm.scope} class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500">
+              <option value="contact">Contact</option>
+              <option value="activity">Activity</option>
+              <option value="task">Task</option>
+            </select>
+          </div>
+          <Input label="Name" bind:value={fieldForm.name} required />
+          <Input label="Slug" bind:value={fieldForm.slug} required />
+          <div>
+            <label class="mb-1.5 block text-sm font-medium text-neutral-300">Data type</label>
+            <select bind:value={fieldForm.data_type} class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500">
               <option value="text">Text</option>
               <option value="number">Number</option>
               <option value="date">Date</option>
@@ -705,9 +713,7 @@
               <option value="select">Select</option>
             </select>
           </div>
-          <Input label="Module" bind:value={fieldForm.module} />
-          <Input label="Options (JSON)" bind:value={fieldForm.options} />
-          <Input label="Sort order" type="number" bind:value={fieldForm.sort_order} />
+          <Input label="Config (JSON)" bind:value={fieldForm.config_json} />
           <div class="flex justify-end gap-3">
             <Button variant="ghost" onclick={() => (showFieldModal = false)}>Cancel</Button>
             <Button type="submit" loading={fieldSaving}>Save</Button>

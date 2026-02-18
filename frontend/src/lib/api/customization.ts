@@ -11,11 +11,11 @@ export interface TemplateCreateInput {
 export type TemplateUpdateInput = Partial<TemplateCreateInput>;
 
 export interface CustomFieldCreateInput {
+  scope: string;
   name: string;
-  field_type: string;
-  options?: string;
-  module?: string;
-  sort_order?: number;
+  slug: string;
+  data_type: string;
+  config_json?: string | null;
 }
 
 export const customizationApi = {
@@ -39,19 +39,19 @@ export const customizationApi = {
     return api.del(`/vaults/${vaultId}/templates/${templateId}`);
   },
 
-  listCustomFields(vaultId: string, params?: { offset?: number; limit?: number }) {
-    return api.get<PaginatedResponse<CustomField>>(`/vaults/${vaultId}/custom-fields${qs(params ?? {})}`);
+  listCustomFields(vaultId: string, params?: { offset?: number; limit?: number; scope?: string }) {
+    return api.get<PaginatedResponse<CustomField>>(`/vaults/${vaultId}/custom-fields/definitions${qs(params ?? {})}`);
   },
 
   createCustomField(vaultId: string, data: CustomFieldCreateInput) {
-    return api.post<CustomField>(`/vaults/${vaultId}/custom-fields`, data);
+    return api.post<CustomField>(`/vaults/${vaultId}/custom-fields/definitions`, data);
   },
 
   updateCustomField(vaultId: string, fieldId: string, data: Partial<CustomFieldCreateInput>) {
-    return api.patch<CustomField>(`/vaults/${vaultId}/custom-fields/${fieldId}`, data);
+    return api.patch<CustomField>(`/vaults/${vaultId}/custom-fields/definitions/${fieldId}`, data);
   },
 
   deleteCustomField(vaultId: string, fieldId: string) {
-    return api.del(`/vaults/${vaultId}/custom-fields/${fieldId}`);
+    return api.del(`/vaults/${vaultId}/custom-fields/definitions/${fieldId}`);
   }
 };
