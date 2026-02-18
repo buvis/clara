@@ -6,13 +6,15 @@
   import { customizationApi } from '$api/customization';
   import type { TemplateCreateInput, CustomFieldCreateInput } from '$api/customization';
   import { relationshipTypesApi } from '$api/contacts';
+  import { tokensApi } from '$api/tokens';
+  import type { PatCreateInput, PatCreateResponse } from '$api/tokens';
   import type { TwoFactorSetupResponse } from '$api/types';
-  import type { Member, Template, CustomField, RelationshipType } from '$lib/types/models';
+  import type { Member, Template, CustomField, RelationshipType, PersonalAccessToken } from '$lib/types/models';
   import Button from '$components/ui/Button.svelte';
   import Badge from '$components/ui/Badge.svelte';
   import Input from '$components/ui/Input.svelte';
   import Modal from '$components/ui/Modal.svelte';
-  import { Pencil, Trash2 } from 'lucide-svelte';
+  import { Pencil, Trash2, Copy, Check } from 'lucide-svelte';
 
   const vaultId = $derived(page.params.vaultId!);
 
@@ -61,6 +63,15 @@
   let editRelTypeId = $state<string | null>(null);
   let relTypeForm = $state({ name: '', inverse_type_id: '' });
   let relTypeSaving = $state(false);
+
+  let tokens = $state<PersonalAccessToken[]>([]);
+  let tokensLoading = $state(true);
+  let showTokenModal = $state(false);
+  let tokenForm = $state<PatCreateInput>({ name: '', scopes: ['read'] });
+  let tokenSaving = $state(false);
+  let newToken = $state<PatCreateResponse | null>(null);
+  let tokenCopied = $state(false);
+  let revokeConfirmId = $state<string | null>(null);
 
   let importLoading = $state(false);
   let importMessage = $state('');
@@ -390,6 +401,60 @@
     relTypes = relTypes.filter((rt) => rt.id !== id);
   }
 
+  // --- PAT CRUD ---
+  async function loadTokens() {
+    tokensLoading = true;
+    try {
+      tokens = await tokensApi.list();
+    } finally {
+      tokensLoading = false;
+    }
+  }
+
+  function openTokenCreate() {
+    tokenForm = { name: '', scopes: ['read'] };
+    newToken = null;
+    tokenCopied = false;
+    showTokenModal = true;
+  }
+
+  function toggleScope(scope: string) {
+    if (tokenForm.scopes.includes(scope)) {
+      tokenForm.scopes = tokenForm.scopes.filter((s) => s !== scope);
+    } else {
+      tokenForm.scopes = [...tokenForm.scopes, scope];
+    }
+  }
+
+  async function handleTokenCreate() {
+    tokenSaving = true;
+    try {
+      const result = await tokensApi.create(tokenForm);
+      newToken = result;
+      tokens = [...tokens, result];
+    } finally {
+      tokenSaving = false;
+    }
+  }
+
+  async function copyToken() {
+    if (!newToken) return;
+    await navigator.clipboard.writeText(newToken.token);
+    tokenCopied = true;
+    setTimeout(() => (tokenCopied = false), 2000);
+  }
+
+  async function handleTokenRevoke(id: string) {
+    await tokensApi.revoke(id);
+    tokens = tokens.filter((t) => t.id !== id);
+    revokeConfirmId = null;
+  }
+
+  function formatTokenDate(d: string | null): string {
+    if (!d) return 'Never';
+    return new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
   $effect(() => {
     if (!vaultId) return;
     loadSettings();
@@ -397,6 +462,7 @@
     loadTemplates();
     loadCustomFields();
     loadRelTypes();
+    loadTokens();
   });
 </script>
 
@@ -820,6 +886,95 @@
         </div>
       {/if}
     </section>
+
+    <section class="space-y-4 rounded-xl border border-neutral-800 bg-neutral-900 p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-white">Personal Access Tokens</h2>
+          <p class="text-sm text-neutral-400">Tokens for API access. Treat them like passwords.</p>
+        </div>
+        <Button size="sm" onclick={openTokenCreate}>Create token</Button>
+      </div>
+
+      {#if tokensLoading}
+        <p class="text-sm text-neutral-500">Loading tokens…</p>
+      {:else if tokens.length === 0}
+        <p class="text-sm text-neutral-500">No tokens created.</p>
+      {:else}
+        <div class="space-y-2">
+          {#each tokens as tok (tok.id)}
+            <div class="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2">
+              <div>
+                <p class="text-sm font-medium text-white">{tok.name}</p>
+                <p class="text-xs text-neutral-500">
+                  {tok.token_prefix}… · {tok.scopes.join(', ')} · Created {formatTokenDate(tok.created_at)}
+                  {#if tok.last_used_at} · Last used {formatTokenDate(tok.last_used_at)}{/if}
+                  {#if tok.expires_at} · Expires {formatTokenDate(tok.expires_at)}{/if}
+                </p>
+              </div>
+              {#if revokeConfirmId === tok.id}
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-red-400">Revoke?</span>
+                  <Button size="sm" variant="danger" onclick={() => handleTokenRevoke(tok.id)}>Yes</Button>
+                  <Button size="sm" variant="ghost" onclick={() => (revokeConfirmId = null)}>No</Button>
+                </div>
+              {:else}
+                <Button size="sm" variant="ghost" onclick={() => (revokeConfirmId = tok.id)}>
+                  <Trash2 size={14} class="text-red-400" />
+                </Button>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </section>
+
+    {#if showTokenModal}
+      <Modal title={newToken ? 'Token Created' : 'Create Token'} onclose={() => (showTokenModal = false)}>
+        {#if newToken}
+          <div class="space-y-4">
+            <div class="rounded-lg border border-amber-500/30 bg-amber-950/20 px-4 py-3 text-sm text-amber-300">
+              Copy this token now — it won't be shown again.
+            </div>
+            <div class="flex items-center gap-2 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2">
+              <code class="flex-1 break-all text-sm text-white">{newToken.token}</code>
+              <button onclick={copyToken} class="shrink-0 rounded p-1 text-neutral-400 transition hover:text-white">
+                {#if tokenCopied}
+                  <Check size={16} class="text-emerald-400" />
+                {:else}
+                  <Copy size={16} />
+                {/if}
+              </button>
+            </div>
+            <div class="flex justify-end">
+              <Button onclick={() => (showTokenModal = false)}>Done</Button>
+            </div>
+          </div>
+        {:else}
+          <form onsubmit={handleTokenCreate} class="space-y-4">
+            <Input label="Token name" bind:value={tokenForm.name} required />
+            <div>
+              <label class="mb-1.5 block text-sm font-medium text-neutral-300">Scopes</label>
+              <div class="flex gap-3">
+                <label class="flex items-center gap-2 text-sm text-neutral-300">
+                  <input type="checkbox" checked={tokenForm.scopes.includes('read')} onchange={() => toggleScope('read')} class="h-4 w-4 accent-brand-500" />
+                  Read
+                </label>
+                <label class="flex items-center gap-2 text-sm text-neutral-300">
+                  <input type="checkbox" checked={tokenForm.scopes.includes('write')} onchange={() => toggleScope('write')} class="h-4 w-4 accent-brand-500" />
+                  Write
+                </label>
+              </div>
+            </div>
+            <Input label="Expires at" type="date" bind:value={tokenForm.expires_at} />
+            <div class="flex justify-end gap-3">
+              <Button variant="ghost" onclick={() => (showTokenModal = false)}>Cancel</Button>
+              <Button type="submit" loading={tokenSaving} disabled={!tokenForm.name || tokenForm.scopes.length === 0}>Create</Button>
+            </div>
+          </form>
+        {/if}
+      </Modal>
+    {/if}
   {/if}
 
   {#if activeTab === 'Import/Export'}
