@@ -4,15 +4,19 @@
   import { vaultsApi } from '$api/vaults';
   import { importExportApi } from '$api/importExport';
   import { customizationApi } from '$api/customization';
+  import type { TemplateCreateInput, CustomFieldCreateInput } from '$api/customization';
+  import { relationshipTypesApi } from '$api/contacts';
   import type { TwoFactorSetupResponse } from '$api/types';
-  import type { Member, Template, CustomField } from '$lib/types/models';
+  import type { Member, Template, CustomField, RelationshipType } from '$lib/types/models';
   import Button from '$components/ui/Button.svelte';
   import Badge from '$components/ui/Badge.svelte';
   import Input from '$components/ui/Input.svelte';
+  import Modal from '$components/ui/Modal.svelte';
+  import { Pencil, Trash2 } from 'lucide-svelte';
 
   const vaultId = $derived(page.params.vaultId!);
 
-  const tabs = ['General', 'Members', 'Templates', 'Custom Fields', 'Security', 'Import/Export'] as const;
+  const tabs = ['General', 'Members', 'Templates', 'Custom Fields', 'Relationship Types', 'Security', 'Import/Export'] as const;
   type Tab = (typeof tabs)[number];
   let activeTab = $state<Tab>('General');
 
@@ -39,8 +43,24 @@
 
   let templates = $state<Template[]>([]);
   let templatesLoading = $state(true);
+  let showTemplateModal = $state(false);
+  let editTemplateId = $state<string | null>(null);
+  let templateForm = $state<TemplateCreateInput>({ name: '' });
+  let templateSaving = $state(false);
+
   let customFields = $state<CustomField[]>([]);
   let customFieldsLoading = $state(true);
+  let showFieldModal = $state(false);
+  let editFieldId = $state<string | null>(null);
+  let fieldForm = $state<CustomFieldCreateInput>({ name: '', field_type: 'text' });
+  let fieldSaving = $state(false);
+
+  let relTypes = $state<RelationshipType[]>([]);
+  let relTypesLoading = $state(true);
+  let showRelTypeModal = $state(false);
+  let editRelTypeId = $state<string | null>(null);
+  let relTypeForm = $state({ name: '', inverse_type_id: '' });
+  let relTypeSaving = $state(false);
 
   let importLoading = $state(false);
   let importMessage = $state('');
@@ -258,12 +278,125 @@
     }
   }
 
+  // --- Template CRUD ---
+  function openTemplateCreate() {
+    editTemplateId = null;
+    templateForm = { name: '' };
+    showTemplateModal = true;
+  }
+
+  function openTemplateEdit(t: Template) {
+    editTemplateId = t.id;
+    templateForm = { name: t.name, pages: t.pages, modules: t.modules };
+    showTemplateModal = true;
+  }
+
+  async function handleTemplateSave() {
+    templateSaving = true;
+    try {
+      if (editTemplateId) {
+        const updated = await customizationApi.updateTemplate(vaultId, editTemplateId, templateForm);
+        templates = templates.map((t) => (t.id === editTemplateId ? updated : t));
+      } else {
+        const created = await customizationApi.createTemplate(vaultId, templateForm);
+        templates = [...templates, created];
+      }
+      showTemplateModal = false;
+    } finally {
+      templateSaving = false;
+    }
+  }
+
+  async function handleTemplateDelete(id: string) {
+    await customizationApi.deleteTemplate(vaultId, id);
+    templates = templates.filter((t) => t.id !== id);
+  }
+
+  // --- Custom Field CRUD ---
+  function openFieldCreate() {
+    editFieldId = null;
+    fieldForm = { name: '', field_type: 'text' };
+    showFieldModal = true;
+  }
+
+  function openFieldEdit(cf: CustomField) {
+    editFieldId = cf.id;
+    fieldForm = { name: cf.name, field_type: cf.field_type, options: cf.options, module: cf.module, sort_order: cf.sort_order };
+    showFieldModal = true;
+  }
+
+  async function handleFieldSave() {
+    fieldSaving = true;
+    try {
+      if (editFieldId) {
+        const updated = await customizationApi.updateCustomField(vaultId, editFieldId, fieldForm);
+        customFields = customFields.map((cf) => (cf.id === editFieldId ? updated : cf));
+      } else {
+        const created = await customizationApi.createCustomField(vaultId, fieldForm);
+        customFields = [...customFields, created];
+      }
+      showFieldModal = false;
+    } finally {
+      fieldSaving = false;
+    }
+  }
+
+  async function handleFieldDelete(id: string) {
+    await customizationApi.deleteCustomField(vaultId, id);
+    customFields = customFields.filter((cf) => cf.id !== id);
+  }
+
+  // --- Relationship Types CRUD ---
+  async function loadRelTypes() {
+    relTypesLoading = true;
+    try {
+      relTypes = await relationshipTypesApi.list(vaultId);
+    } finally {
+      relTypesLoading = false;
+    }
+  }
+
+  function openRelTypeCreate() {
+    editRelTypeId = null;
+    relTypeForm = { name: '', inverse_type_id: '' };
+    showRelTypeModal = true;
+  }
+
+  function openRelTypeEdit(rt: RelationshipType) {
+    editRelTypeId = rt.id;
+    relTypeForm = { name: rt.name, inverse_type_id: rt.inverse_type_id ?? '' };
+    showRelTypeModal = true;
+  }
+
+  async function handleRelTypeSave() {
+    relTypeSaving = true;
+    try {
+      const data = { name: relTypeForm.name, inverse_type_id: relTypeForm.inverse_type_id || null };
+      if (editRelTypeId) {
+        const updated = await relationshipTypesApi.update(vaultId, editRelTypeId, data);
+        relTypes = relTypes.map((rt) => (rt.id === editRelTypeId ? updated : rt));
+      } else {
+        const created = await relationshipTypesApi.create(vaultId, data);
+        relTypes = [...relTypes, created];
+      }
+      showRelTypeModal = false;
+    } finally {
+      relTypeSaving = false;
+    }
+  }
+
+  async function handleRelTypeDelete(id: string) {
+    await relationshipTypesApi.del(vaultId, id);
+    relTypes = relTypes.filter((rt) => rt.id !== id);
+  }
+
   $effect(() => {
     if (!vaultId) return;
     loadSettings();
     loadMembers();
     loadTemplates();
     loadCustomFields();
+    loadRelTypes();
   });
 </script>
 
@@ -424,45 +557,151 @@
 
   {#if activeTab === 'Templates'}
     <section class="space-y-4 rounded-xl border border-neutral-800 bg-neutral-900 p-6">
-      <h2 class="text-lg font-semibold text-white">Templates</h2>
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-white">Templates</h2>
+        <Button size="sm" onclick={openTemplateCreate}>Add template</Button>
+      </div>
       {#if templatesLoading}
         <p class="text-sm text-neutral-500">Loading templates…</p>
       {:else if templates.length === 0}
         <p class="text-sm text-neutral-500">No templates configured.</p>
       {:else}
         <div class="space-y-2">
-          {#each templates as t}
-            <div class="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2">
+          {#each templates as t (t.id)}
+            <div class="group flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2">
               <p class="text-sm font-medium text-white">{t.name}</p>
-              <span class="text-xs text-neutral-500">{new Date(t.updated_at).toLocaleDateString()}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-neutral-500">{new Date(t.updated_at).toLocaleDateString()}</span>
+                <button onclick={() => openTemplateEdit(t)} class="text-neutral-600 opacity-0 transition hover:text-white group-hover:opacity-100"><Pencil size={14} /></button>
+                <button onclick={() => handleTemplateDelete(t.id)} class="text-neutral-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100"><Trash2 size={14} /></button>
+              </div>
             </div>
           {/each}
         </div>
       {/if}
     </section>
+
+    {#if showTemplateModal}
+      <Modal title={editTemplateId ? 'Edit Template' : 'New Template'} onclose={() => (showTemplateModal = false)}>
+        <form onsubmit={handleTemplateSave} class="space-y-4">
+          <Input label="Name" bind:value={templateForm.name} required />
+          <Input label="Pages (JSON)" bind:value={templateForm.pages} />
+          <Input label="Modules (JSON)" bind:value={templateForm.modules} />
+          <div class="flex justify-end gap-3">
+            <Button variant="ghost" onclick={() => (showTemplateModal = false)}>Cancel</Button>
+            <Button type="submit" loading={templateSaving}>Save</Button>
+          </div>
+        </form>
+      </Modal>
+    {/if}
   {/if}
 
   {#if activeTab === 'Custom Fields'}
     <section class="space-y-4 rounded-xl border border-neutral-800 bg-neutral-900 p-6">
-      <h2 class="text-lg font-semibold text-white">Custom Fields</h2>
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-white">Custom Fields</h2>
+        <Button size="sm" onclick={openFieldCreate}>Add field</Button>
+      </div>
       {#if customFieldsLoading}
         <p class="text-sm text-neutral-500">Loading custom fields…</p>
       {:else if customFields.length === 0}
         <p class="text-sm text-neutral-500">No custom fields configured.</p>
       {:else}
         <div class="space-y-2">
-          {#each customFields as cf}
-            <div class="flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2">
+          {#each customFields as cf (cf.id)}
+            <div class="group flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2">
               <div>
                 <p class="text-sm font-medium text-white">{cf.name}</p>
                 <p class="text-xs text-neutral-500">{cf.field_type}{cf.module ? ` · ${cf.module}` : ''}</p>
               </div>
-              <span class="text-xs text-neutral-500">#{cf.sort_order}</span>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-neutral-500">#{cf.sort_order}</span>
+                <button onclick={() => openFieldEdit(cf)} class="text-neutral-600 opacity-0 transition hover:text-white group-hover:opacity-100"><Pencil size={14} /></button>
+                <button onclick={() => handleFieldDelete(cf.id)} class="text-neutral-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100"><Trash2 size={14} /></button>
+              </div>
             </div>
           {/each}
         </div>
       {/if}
     </section>
+
+    {#if showFieldModal}
+      <Modal title={editFieldId ? 'Edit Custom Field' : 'New Custom Field'} onclose={() => (showFieldModal = false)}>
+        <form onsubmit={handleFieldSave} class="space-y-4">
+          <Input label="Name" bind:value={fieldForm.name} required />
+          <div>
+            <label class="mb-1.5 block text-sm font-medium text-neutral-300">Field type</label>
+            <select bind:value={fieldForm.field_type} class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500">
+              <option value="text">Text</option>
+              <option value="number">Number</option>
+              <option value="date">Date</option>
+              <option value="boolean">Boolean</option>
+              <option value="select">Select</option>
+            </select>
+          </div>
+          <Input label="Module" bind:value={fieldForm.module} />
+          <Input label="Options (JSON)" bind:value={fieldForm.options} />
+          <Input label="Sort order" type="number" bind:value={fieldForm.sort_order} />
+          <div class="flex justify-end gap-3">
+            <Button variant="ghost" onclick={() => (showFieldModal = false)}>Cancel</Button>
+            <Button type="submit" loading={fieldSaving}>Save</Button>
+          </div>
+        </form>
+      </Modal>
+    {/if}
+  {/if}
+
+  {#if activeTab === 'Relationship Types'}
+    <section class="space-y-4 rounded-xl border border-neutral-800 bg-neutral-900 p-6">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-white">Relationship Types</h2>
+        <Button size="sm" onclick={openRelTypeCreate}>Add type</Button>
+      </div>
+      {#if relTypesLoading}
+        <p class="text-sm text-neutral-500">Loading relationship types…</p>
+      {:else if relTypes.length === 0}
+        <p class="text-sm text-neutral-500">No relationship types configured.</p>
+      {:else}
+        <div class="space-y-2">
+          {#each relTypes as rt (rt.id)}
+            <div class="group flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2">
+              <div>
+                <p class="text-sm font-medium text-white">{rt.name}</p>
+                {#if rt.inverse_type_id}
+                  {@const inv = relTypes.find((r) => r.id === rt.inverse_type_id)}
+                  {#if inv}<p class="text-xs text-neutral-500">Inverse: {inv.name}</p>{/if}
+                {/if}
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick={() => openRelTypeEdit(rt)} class="text-neutral-600 opacity-0 transition hover:text-white group-hover:opacity-100"><Pencil size={14} /></button>
+                <button onclick={() => handleRelTypeDelete(rt.id)} class="text-neutral-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100"><Trash2 size={14} /></button>
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </section>
+
+    {#if showRelTypeModal}
+      <Modal title={editRelTypeId ? 'Edit Relationship Type' : 'New Relationship Type'} onclose={() => (showRelTypeModal = false)}>
+        <form onsubmit={handleRelTypeSave} class="space-y-4">
+          <Input label="Name" bind:value={relTypeForm.name} required />
+          <div>
+            <label class="mb-1.5 block text-sm font-medium text-neutral-300">Inverse type</label>
+            <select bind:value={relTypeForm.inverse_type_id} class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500">
+              <option value="">None</option>
+              {#each relTypes.filter((r) => r.id !== editRelTypeId) as rt (rt.id)}
+                <option value={rt.id}>{rt.name}</option>
+              {/each}
+            </select>
+          </div>
+          <div class="flex justify-end gap-3">
+            <Button variant="ghost" onclick={() => (showRelTypeModal = false)}>Cancel</Button>
+            <Button type="submit" loading={relTypeSaving}>Save</Button>
+          </div>
+        </form>
+      </Modal>
+    {/if}
   {/if}
 
   {#if activeTab === 'Security'}
