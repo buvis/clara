@@ -90,7 +90,7 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     app.dependency_overrides[db_get_session] = override_get_session
     transport = ASGITransport(app=app)
     async with AsyncClient(
-        transport=transport, base_url="http://testserver"
+        transport=transport, base_url="http://localhost"
     ) as test_client:
         yield test_client
     app.dependency_overrides.clear()
@@ -131,12 +131,8 @@ async def vault(db_session: AsyncSession, user: User) -> Vault:
 async def authenticated_client(
     client: AsyncClient, user: User, vault: Vault
 ) -> AsyncClient:
-    response = await client.post(
-        "/api/v1/auth/login",
-        json={"email": user.email, "password": "Password123!"},
-    )
-    assert response.status_code == 200
-    csrf_token = response.cookies.get("csrf_token") or client.cookies.get("csrf_token")
-    if csrf_token:
-        client.headers["x-csrf-token"] = csrf_token
+    from clara.auth.security import create_access_token
+
+    token = create_access_token(str(user.id))
+    client.headers["authorization"] = f"Bearer {token}"
     return client

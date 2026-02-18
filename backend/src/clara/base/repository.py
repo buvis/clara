@@ -53,6 +53,7 @@ class BaseRepository[ModelT: VaultScopedModel]:
         obj = self.model(vault_id=self.vault_id, **kwargs)
         self.session.add(obj)
         await self.session.flush()
+        await self.session.refresh(obj)
         return obj
 
     async def update(self, id: uuid.UUID, **kwargs: Any) -> ModelT:
@@ -62,6 +63,7 @@ class BaseRepository[ModelT: VaultScopedModel]:
         for key, value in kwargs.items():
             setattr(obj, key, value)
         await self.session.flush()
+        await self.session.refresh(obj)
         return obj
 
     async def soft_delete(self, id: uuid.UUID) -> None:

@@ -1,6 +1,7 @@
 import uuid
 
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from clara.activities.models import Activity, ActivityParticipant, ActivityType
 from clara.base.repository import BaseRepository
@@ -17,6 +18,7 @@ class ActivityRepository(BaseRepository[Activity]):
         return (
             super()
             ._base_query()
+            .options(selectinload(Activity.participants))
             .order_by(Activity.happened_at.desc())
         )
 

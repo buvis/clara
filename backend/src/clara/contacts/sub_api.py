@@ -233,6 +233,7 @@ async def update_contact_method(
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
     await repo.session.flush()
+    await repo.session.refresh(item)
     return ContactMethodRead.model_validate(item)
 
 
@@ -283,6 +284,7 @@ async def update_address(
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
     await repo.session.flush()
+    await repo.session.refresh(item)
     return AddressRead.model_validate(item)
 
 
@@ -408,6 +410,7 @@ async def update_pet(
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
     await repo.session.flush()
+    await repo.session.refresh(item)
     return PetRead.model_validate(item)
 
 
