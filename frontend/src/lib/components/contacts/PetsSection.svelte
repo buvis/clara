@@ -13,6 +13,7 @@
 
   let items = $state<Pet[]>([]);
   let loading = $state(true);
+  let error = $state('');
   let adding = $state(false);
   let editId = $state<string | null>(null);
   let form = $state({ name: '', species: '' });
@@ -21,6 +22,9 @@
   $effect(() => {
     contactsApi.listPets(vaultId, contactId).then((r) => {
       items = r;
+      loading = false;
+    }).catch(() => {
+      error = 'Failed to load pets';
       loading = false;
     });
   });
@@ -71,7 +75,9 @@
     {/if}
   </div>
 
-  {#if loading}
+  {#if error}
+    <p class="text-xs text-red-400">{error}</p>
+  {:else if loading}
     <p class="text-xs text-neutral-500">Loading...</p>
   {:else if items.length === 0 && !adding}
     <p class="text-xs text-neutral-500">No pets yet</p>

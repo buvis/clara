@@ -14,6 +14,7 @@
   let tags = $state<Tag[]>([]);
   let allTags = $state<Tag[]>([]);
   let loading = $state(true);
+  let error = $state('');
   let adding = $state(false);
   let selectedTagId = $state('');
   let saving = $state(false);
@@ -25,6 +26,9 @@
     ]).then(([contactTags, vaultTags]) => {
       tags = contactTags;
       allTags = vaultTags;
+      loading = false;
+    }).catch(() => {
+      error = 'Failed to load tags';
       loading = false;
     });
   });
@@ -62,7 +66,9 @@
     {/if}
   </div>
 
-  {#if loading}
+  {#if error}
+    <p class="text-xs text-red-400">{error}</p>
+  {:else if loading}
     <p class="text-xs text-neutral-500">Loading...</p>
   {:else if tags.length === 0 && !adding}
     <p class="text-xs text-neutral-500">No tags yet</p>

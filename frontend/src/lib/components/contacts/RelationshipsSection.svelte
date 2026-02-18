@@ -17,6 +17,7 @@
   let relTypes = $state<RelationshipType[]>([]);
   let contactsCache = $state<Record<string, Contact>>({});
   let loading = $state(true);
+  let error = $state('');
   let adding = $state(false);
   let form = $state({ other_contact_id: '', relationship_type_id: '' });
   let saving = $state(false);
@@ -39,6 +40,9 @@
         }
       }
       contactsCache = { ...contactsCache };
+      loading = false;
+    }).catch(() => {
+      error = 'Failed to load relationships';
       loading = false;
     });
   });
@@ -108,7 +112,9 @@
     {/if}
   </div>
 
-  {#if loading}
+  {#if error}
+    <p class="text-xs text-red-400">{error}</p>
+  {:else if loading}
     <p class="text-xs text-neutral-500">Loading...</p>
   {:else if relationships.length === 0 && !adding}
     <p class="text-xs text-neutral-500">No relationships yet</p>
