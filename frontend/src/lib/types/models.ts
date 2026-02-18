@@ -339,6 +339,17 @@ export interface ContactRelationship {
   updated_at: string;
 }
 
+// --- Relationship Types ---
+
+export interface RelationshipType {
+  id: string;
+  vault_id: string;
+  name: string;
+  inverse_type_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // --- PATs ---
 
 export interface PersonalAccessToken {
