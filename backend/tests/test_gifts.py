@@ -3,20 +3,13 @@ from httpx import AsyncClient
 
 from clara.auth.models import Vault
 
+from .conftest import create_contact
+
 pytestmark = pytest.mark.asyncio
 
 
-async def _create_contact(client: AsyncClient, vault_id) -> str:
-    resp = await client.post(
-        f"/api/v1/vaults/{vault_id}/contacts",
-        json={"first_name": "GiftPal"},
-    )
-    assert resp.status_code == 201
-    return resp.json()["id"]
-
-
 async def test_gift_crud(authenticated_client: AsyncClient, vault: Vault):
-    contact_id = await _create_contact(authenticated_client, vault.id)
+    contact_id = await create_contact(authenticated_client, str(vault.id))
 
     # Create
     resp = await authenticated_client.post(

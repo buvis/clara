@@ -246,12 +246,33 @@ export interface VaultSettings {
 
 // --- Templates ---
 
+export interface TemplateModule {
+  id: string;
+  page_id: string;
+  module_type: string;
+  order: number;
+  config_json: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TemplatePage {
+  id: string;
+  template_id: string;
+  slug: string;
+  name: string;
+  order: number;
+  modules: TemplateModule[];
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Template {
   id: string;
   vault_id: string;
   name: string;
-  pages: string;
-  modules: string;
+  description: string | null;
+  pages: TemplatePage[];
   created_at: string;
   updated_at: string;
 }

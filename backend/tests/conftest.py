@@ -136,3 +136,14 @@ async def authenticated_client(
     token = create_access_token(str(user.id))
     client.headers["authorization"] = f"Bearer {token}"
     return client
+
+
+async def create_contact(
+    client: AsyncClient, vault_id: str, name: str = "Test"
+) -> str:
+    resp = await client.post(
+        f"/api/v1/vaults/{vault_id}/contacts",
+        json={"first_name": name},
+    )
+    assert resp.status_code == 201
+    return resp.json()["id"]

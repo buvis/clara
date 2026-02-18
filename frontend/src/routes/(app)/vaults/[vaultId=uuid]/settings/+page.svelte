@@ -49,6 +49,7 @@
   let editTemplateId = $state<string | null>(null);
   let templateForm = $state<TemplateCreateInput>({ name: '' });
   let templateSaving = $state(false);
+  let templateDeleteId = $state<string | null>(null);
 
   let customFields = $state<CustomField[]>([]);
   let customFieldsLoading = $state(true);
@@ -56,6 +57,7 @@
   let editFieldId = $state<string | null>(null);
   let fieldForm = $state<CustomFieldCreateInput>({ scope: 'contact', name: '', slug: '', data_type: 'text' });
   let fieldSaving = $state(false);
+  let fieldDeleteId = $state<string | null>(null);
 
   let relTypes = $state<RelationshipType[]>([]);
   let relTypesLoading = $state(true);
@@ -298,7 +300,7 @@
 
   function openTemplateEdit(t: Template) {
     editTemplateId = t.id;
-    templateForm = { name: t.name, pages: t.pages, modules: t.modules };
+    templateForm = { name: t.name, description: t.description };
     showTemplateModal = true;
   }
 
@@ -321,6 +323,7 @@
   async function handleTemplateDelete(id: string) {
     await customizationApi.deleteTemplate(vaultId, id);
     templates = templates.filter((t) => t.id !== id);
+    templateDeleteId = null;
   }
 
   // --- Custom Field CRUD ---
@@ -355,6 +358,7 @@
   async function handleFieldDelete(id: string) {
     await customizationApi.deleteCustomField(vaultId, id);
     customFields = customFields.filter((cf) => cf.id !== id);
+    fieldDeleteId = null;
   }
 
   // --- Relationship Types CRUD ---
@@ -457,12 +461,12 @@
 
   $effect(() => {
     if (!vaultId) return;
-    loadSettings();
-    loadMembers();
-    loadTemplates();
-    loadCustomFields();
-    loadRelTypes();
-    loadTokens();
+    if (activeTab === 'General') loadSettings();
+    if (activeTab === 'Members') loadMembers();
+    if (activeTab === 'Templates') loadTemplates();
+    if (activeTab === 'Custom Fields') loadCustomFields();
+    if (activeTab === 'Relationship Types') loadRelTypes();
+    if (activeTab === 'Security') loadTokens();
   });
 </script>
 
@@ -638,8 +642,14 @@
               <p class="text-sm font-medium text-white">{t.name}</p>
               <div class="flex items-center gap-2">
                 <span class="text-xs text-neutral-500">{new Date(t.updated_at).toLocaleDateString()}</span>
-                <button onclick={() => openTemplateEdit(t)} class="text-neutral-600 opacity-0 transition hover:text-white group-hover:opacity-100"><Pencil size={14} /></button>
-                <button onclick={() => handleTemplateDelete(t.id)} class="text-neutral-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100"><Trash2 size={14} /></button>
+                {#if templateDeleteId === t.id}
+                  <span class="text-xs text-red-400">Delete?</span>
+                  <Button size="sm" variant="danger" onclick={() => handleTemplateDelete(t.id)}>Yes</Button>
+                  <Button size="sm" variant="ghost" onclick={() => (templateDeleteId = null)}>No</Button>
+                {:else}
+                  <button onclick={() => openTemplateEdit(t)} class="text-neutral-600 opacity-0 transition hover:text-white group-hover:opacity-100"><Pencil size={14} /></button>
+                  <button onclick={() => (templateDeleteId = t.id)} class="text-neutral-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100"><Trash2 size={14} /></button>
+                {/if}
               </div>
             </div>
           {/each}
@@ -651,8 +661,7 @@
       <Modal title={editTemplateId ? 'Edit Template' : 'New Template'} onclose={() => (showTemplateModal = false)}>
         <form onsubmit={handleTemplateSave} class="space-y-4">
           <Input label="Name" bind:value={templateForm.name} required />
-          <Input label="Pages (JSON)" bind:value={templateForm.pages} />
-          <Input label="Modules (JSON)" bind:value={templateForm.modules} />
+          <Input label="Description" bind:value={templateForm.description} />
           <div class="flex justify-end gap-3">
             <Button variant="ghost" onclick={() => (showTemplateModal = false)}>Cancel</Button>
             <Button type="submit" loading={templateSaving}>Save</Button>
@@ -681,8 +690,14 @@
                 <p class="text-xs text-neutral-500">{cf.data_type} · {cf.scope} · {cf.slug}</p>
               </div>
               <div class="flex items-center gap-2">
-                <button onclick={() => openFieldEdit(cf)} class="text-neutral-600 opacity-0 transition hover:text-white group-hover:opacity-100"><Pencil size={14} /></button>
-                <button onclick={() => handleFieldDelete(cf.id)} class="text-neutral-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100"><Trash2 size={14} /></button>
+                {#if fieldDeleteId === cf.id}
+                  <span class="text-xs text-red-400">Delete?</span>
+                  <Button size="sm" variant="danger" onclick={() => handleFieldDelete(cf.id)}>Yes</Button>
+                  <Button size="sm" variant="ghost" onclick={() => (fieldDeleteId = null)}>No</Button>
+                {:else}
+                  <button onclick={() => openFieldEdit(cf)} class="text-neutral-600 opacity-0 transition hover:text-white group-hover:opacity-100"><Pencil size={14} /></button>
+                  <button onclick={() => (fieldDeleteId = cf.id)} class="text-neutral-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100"><Trash2 size={14} /></button>
+                {/if}
               </div>
             </div>
           {/each}

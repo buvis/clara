@@ -4,8 +4,7 @@ import type { PaginatedResponse } from '$lib/types/common';
 
 export interface TemplateCreateInput {
   name: string;
-  pages?: string;
-  modules?: string;
+  description?: string | null;
 }
 
 export type TemplateUpdateInput = Partial<TemplateCreateInput>;

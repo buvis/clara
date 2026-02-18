@@ -3,22 +3,15 @@ from httpx import AsyncClient
 
 from clara.auth.models import Vault
 
+from .conftest import create_contact
+
 pytestmark = pytest.mark.asyncio
-
-
-async def _create_contact(client: AsyncClient, vault_id, name="SubTest") -> str:
-    resp = await client.post(
-        f"/api/v1/vaults/{vault_id}/contacts",
-        json={"first_name": name},
-    )
-    assert resp.status_code == 201
-    return resp.json()["id"]
 
 
 async def test_contact_methods_crud(
     authenticated_client: AsyncClient, vault: Vault
 ):
-    contact_id = await _create_contact(authenticated_client, vault.id)
+    contact_id = await create_contact(authenticated_client, str(vault.id))
     base = f"/api/v1/vaults/{vault.id}/contacts/{contact_id}/methods"
 
     # Create
@@ -46,7 +39,7 @@ async def test_contact_methods_crud(
 
 
 async def test_addresses_crud(authenticated_client: AsyncClient, vault: Vault):
-    contact_id = await _create_contact(authenticated_client, vault.id)
+    contact_id = await create_contact(authenticated_client, str(vault.id))
     base = f"/api/v1/vaults/{vault.id}/contacts/{contact_id}/addresses"
 
     # Create
@@ -75,7 +68,7 @@ async def test_addresses_crud(authenticated_client: AsyncClient, vault: Vault):
 
 
 async def test_pets_crud(authenticated_client: AsyncClient, vault: Vault):
-    contact_id = await _create_contact(authenticated_client, vault.id)
+    contact_id = await create_contact(authenticated_client, str(vault.id))
     base = f"/api/v1/vaults/{vault.id}/contacts/{contact_id}/pets"
 
     # Create
@@ -103,7 +96,7 @@ async def test_pets_crud(authenticated_client: AsyncClient, vault: Vault):
 
 
 async def test_tags_attach_detach(authenticated_client: AsyncClient, vault: Vault):
-    contact_id = await _create_contact(authenticated_client, vault.id)
+    contact_id = await create_contact(authenticated_client, str(vault.id))
 
     # Create vault tag
     resp = await authenticated_client.post(
@@ -135,8 +128,8 @@ async def test_tags_attach_detach(authenticated_client: AsyncClient, vault: Vaul
 
 
 async def test_relationships_crud(authenticated_client: AsyncClient, vault: Vault):
-    contact_a = await _create_contact(authenticated_client, vault.id, "Alice")
-    contact_b = await _create_contact(authenticated_client, vault.id, "Bob")
+    contact_a = await create_contact(authenticated_client, str(vault.id), "Alice")
+    contact_b = await create_contact(authenticated_client, str(vault.id), "Bob")
 
     # Create relationship type
     resp = await authenticated_client.post(
