@@ -124,3 +124,23 @@ class TagCreate(BaseModel):
 
 class ContactTagAttach(BaseModel):
     tag_id: uuid.UUID
+
+
+class RelationshipTypeRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    vault_id: uuid.UUID
+    name: str
+    inverse_type_id: uuid.UUID | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class RelationshipTypeCreate(BaseModel):
+    name: str
+    inverse_type_id: uuid.UUID | None = None
+
+
+class RelationshipTypeUpdate(BaseModel):
+    name: str | None = None
+    inverse_type_id: uuid.UUID | None = None
