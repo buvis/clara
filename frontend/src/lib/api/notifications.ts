@@ -15,7 +15,17 @@ export const notificationsApi = {
   },
 
   markRead(vaultId: string, notificationId: string) {
-    return api.patch<Notification>(`/vaults/${vaultId}/notifications/${notificationId}`, { read: true });
+    return api.patch<Notification>(
+      `/vaults/${vaultId}/notifications/${notificationId}`,
+      { read: true }
+    );
+  },
+
+  markUnread(vaultId: string, notificationId: string) {
+    return api.patch<Notification>(
+      `/vaults/${vaultId}/notifications/${notificationId}`,
+      { read: false }
+    );
   },
 
   markAllRead(vaultId: string) {
