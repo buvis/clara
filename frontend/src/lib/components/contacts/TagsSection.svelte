@@ -16,7 +16,10 @@
   let loading = $state(true);
   let error = $state('');
   let adding = $state(false);
+  let creatingNew = $state(false);
   let selectedTagId = $state('');
+  let newTagName = $state('');
+  let newTagColor = $state('#6366f1');
   let saving = $state(false);
 
   $effect(() => {
@@ -48,6 +51,30 @@
     } finally {
       saving = false;
     }
+  }
+
+  async function handleCreateAndAdd() {
+    if (!newTagName.trim()) return;
+    saving = true;
+    try {
+      const created = await tagsApi.create(vaultId, { name: newTagName.trim(), color: newTagColor });
+      allTags = [...allTags, created];
+      const attached = await contactsApi.addTag(vaultId, contactId, created.id);
+      tags = [...tags, attached];
+      newTagName = '';
+      newTagColor = '#6366f1';
+      creatingNew = false;
+      adding = false;
+    } finally {
+      saving = false;
+    }
+  }
+
+  function closeAdd() {
+    adding = false;
+    creatingNew = false;
+    selectedTagId = '';
+    newTagName = '';
   }
 
   async function handleRemove(tagId: string) {
@@ -89,15 +116,29 @@
   {/if}
 
   {#if adding}
-    <form onsubmit={handleAdd} class="mt-2 flex gap-2">
-      <select bind:value={selectedTagId} class="min-w-0 flex-1 rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs text-white">
-        <option value="">Select a tag...</option>
-        {#each availableTags as tag (tag.id)}
-          <option value={tag.id}>{tag.name}</option>
-        {/each}
-      </select>
-      <Button size="sm" type="submit" loading={saving} disabled={!selectedTagId}>Add</Button>
-      <Button size="sm" variant="ghost" onclick={() => (adding = false)}>Cancel</Button>
-    </form>
+    <div class="mt-2 space-y-2">
+      {#if creatingNew}
+        <form onsubmit={handleCreateAndAdd} class="flex gap-2">
+          <input bind:value={newTagName} placeholder="Tag name" required class="min-w-0 flex-1 rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs text-white outline-none focus:border-brand-500" />
+          <input bind:value={newTagColor} type="color" class="h-7 w-7 cursor-pointer rounded border border-neutral-700 bg-neutral-800 p-0.5" />
+          <Button size="sm" type="submit" loading={saving} disabled={!newTagName.trim()}>Create</Button>
+          <Button size="sm" variant="ghost" onclick={closeAdd}>Cancel</Button>
+        </form>
+      {:else}
+        <form onsubmit={handleAdd} class="flex gap-2">
+          <select bind:value={selectedTagId} class="min-w-0 flex-1 rounded border border-neutral-700 bg-neutral-800 px-2 py-1 text-xs text-white">
+            <option value="">Select a tag...</option>
+            {#each availableTags as tag (tag.id)}
+              <option value={tag.id}>{tag.name}</option>
+            {/each}
+          </select>
+          <Button size="sm" type="submit" loading={saving} disabled={!selectedTagId}>Add</Button>
+          <Button size="sm" variant="ghost" onclick={closeAdd}>Cancel</Button>
+        </form>
+        <button onclick={() => (creatingNew = true)} class="text-xs text-brand-400 hover:text-brand-300">
+          + Create new tag
+        </button>
+      {/if}
+    </div>
   {/if}
 </div>
