@@ -14,8 +14,8 @@ from clara.auth.models import PersonalAccessToken, RecoveryCode, TotpDevice, Use
 from clara.auth.schemas import (
     AuthResponse,
     ForgotPasswordRequest,
-    LoginResponse,
     LoginRequest,
+    LoginResponse,
     PatCreate,
     PatCreateResponse,
     PatRead,
@@ -129,7 +129,20 @@ async def forgot_password(body: ForgotPasswordRequest, db: Db):
         await db.execute(select(User).where(User.email == body.email))
     ).scalar_one_or_none()
     if user:
-        create_reset_token(str(user.id))  # TODO: email token to user
+        token = create_reset_token(str(user.id))
+        settings = get_settings()
+        reset_link = f"{settings.frontend_url}/auth/reset-password?token={token}"
+        html = (
+            "<p>You requested a password reset for your CLARA account.</p>"
+            f'<p><a href="{reset_link}">Reset your password</a></p>'
+            "<p>If you did not request this, ignore this email.</p>"
+        )
+        try:
+            from clara.email.sender import get_sender
+
+            get_sender().send(user.email, "CLARA — Password Reset", html)
+        except Exception:
+            logger.exception("Failed to send password reset email")
         logger.info("Password reset requested", extra={"user_id": str(user.id)})
     return {"ok": True}
 

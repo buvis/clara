@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     cookie_samesite: str = "lax"
 
     cors_origins: list[str] = []
+    frontend_url: str = "http://localhost:5173"
 
     storage_path: str = "./uploads"
     smtp_host: str = ""
