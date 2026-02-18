@@ -65,6 +65,7 @@ async def update_relationship_type(
     for key, value in body.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
     await repo.session.flush()
+    await repo.session.refresh(item)
     return RelationshipTypeRead.model_validate(item)
 
 
