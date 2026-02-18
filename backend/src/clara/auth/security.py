@@ -23,9 +23,7 @@ def verify_password(plain: str, hashed: str) -> bool:
         except argon2.exceptions.VerifyMismatchError:
             return False
     # Legacy bcrypt fallback
-    if bcrypt.checkpw(plain.encode(), hashed.encode()):
-        return True
-    return False
+    return bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
 def needs_rehash(hashed: str) -> bool:

@@ -4,7 +4,6 @@ from datetime import datetime
 from sqlalchemy import DateTime, ForeignKey, MetaData, Uuid, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-
 convention = {
     "ix": "ix_%(column_0_label)s",
     "uq": "uq_%(table_name)s_%(column_0_name)s",

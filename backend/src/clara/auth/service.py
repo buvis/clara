@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from clara.auth.models import TotpDevice, User, Vault, VaultMembership, VaultSettings
 from clara.auth.schemas import LoginRequest, RegisterRequest
 from clara.auth.security import (
-    create_access_token,
     create_2fa_temp_token,
+    create_access_token,
     create_refresh_token,
     hash_password,
     needs_rehash,

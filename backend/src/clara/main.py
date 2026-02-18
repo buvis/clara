@@ -39,6 +39,7 @@ def create_app() -> FastAPI:
         return JSONResponse(status_code=409, content={"detail": exc.detail})
 
     import time
+
     import structlog
     logger = structlog.get_logger()
 
