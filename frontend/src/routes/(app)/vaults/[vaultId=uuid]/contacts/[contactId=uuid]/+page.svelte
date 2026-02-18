@@ -6,6 +6,11 @@
   import { notesApi } from '$api/notes';
   import { api } from '$api/client';
   import ContactTabs from '$components/contacts/ContactTabs.svelte';
+  import ContactMethodsSection from '$components/contacts/ContactMethodsSection.svelte';
+  import AddressesSection from '$components/contacts/AddressesSection.svelte';
+  import PetsSection from '$components/contacts/PetsSection.svelte';
+  import TagsSection from '$components/contacts/TagsSection.svelte';
+  import RelationshipsSection from '$components/contacts/RelationshipsSection.svelte';
   import Spinner from '$components/ui/Spinner.svelte';
   import Button from '$components/ui/Button.svelte';
   import Input from '$components/ui/Input.svelte';
@@ -176,6 +181,11 @@
               <p class="whitespace-pre-wrap text-sm text-neutral-300">{contact.notes_summary}</p>
             </div>
           {/if}
+          <ContactMethodsSection {vaultId} {contactId} />
+          <AddressesSection {vaultId} {contactId} />
+          <TagsSection {vaultId} {contactId} />
+          <PetsSection {vaultId} {contactId} />
+          <RelationshipsSection {vaultId} {contactId} />
         </div>
 
       {:else if tabLoading}
