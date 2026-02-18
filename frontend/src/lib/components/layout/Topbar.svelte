@@ -146,6 +146,15 @@
               {/each}
             {/if}
           </div>
+          {#if vaultId}
+            <a
+              href="/vaults/{vaultId}/notifications"
+              onclick={() => (notificationsOpen = false)}
+              class="block border-t border-neutral-700 px-3 py-2 text-center text-xs text-brand-400 transition hover:bg-neutral-700/50 hover:text-brand-300"
+            >
+              View all notifications
+            </a>
+          {/if}
         </div>
       {/if}
     </div>
