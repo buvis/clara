@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:5173"
 
     storage_path: str = "./uploads"
+    git_sync_work_dir: str = "./git_sync_repos"
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""

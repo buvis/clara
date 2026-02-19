@@ -193,6 +193,18 @@ def create_app() -> FastAPI:
         prefix="/api/v1/vaults/{vault_id}/notifications",
         tags=["notifications"],
     )
+    from clara.dav_sync.api import router as dav_sync_router
+    app.include_router(
+        dav_sync_router,
+        prefix="/api/v1/vaults/{vault_id}/dav-sync",
+        tags=["dav-sync"],
+    )
+    from clara.git_sync.api import router as git_sync_router
+    app.include_router(
+        git_sync_router,
+        prefix="/api/v1/vaults/{vault_id}/git-sync",
+        tags=["git-sync"],
+    )
 
     return app
 
