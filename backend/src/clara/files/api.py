@@ -38,7 +38,7 @@ FileSvc = Annotated[FileService, Depends(get_file_service)]
 @router.get("", response_model=PaginatedResponse[FileRead])
 async def list_files(
     svc: FileSvc, pagination: PaginationParams = Depends()
-):
+) -> PaginatedResponse[FileRead]:
     items, total = await svc.list_files(
         offset=pagination.offset, limit=pagination.limit
     )
@@ -51,17 +51,17 @@ async def list_files(
 
 
 @router.post("", response_model=FileRead, status_code=201)
-async def upload_file(file: UploadFile, svc: FileSvc):
+async def upload_file(file: UploadFile, svc: FileSvc) -> FileRead:
     return FileRead.model_validate(await svc.upload_file(file))
 
 
 @router.get("/{file_id}", response_model=FileRead)
-async def get_file(file_id: uuid.UUID, svc: FileSvc):
+async def get_file(file_id: uuid.UUID, svc: FileSvc) -> FileRead:
     return FileRead.model_validate(await svc.get_file(file_id))
 
 
 @router.get("/{file_id}/download")
-async def download_file(file_id: uuid.UUID, svc: FileSvc):
+async def download_file(file_id: uuid.UUID, svc: FileSvc) -> Response:
     data, file = await svc.download_file(file_id)
     return Response(
         content=data,
@@ -73,12 +73,12 @@ async def download_file(file_id: uuid.UUID, svc: FileSvc):
 
 
 @router.delete("/{file_id}", status_code=204)
-async def delete_file(file_id: uuid.UUID, svc: FileSvc):
+async def delete_file(file_id: uuid.UUID, svc: FileSvc) -> None:
     await svc.delete_file(file_id)
 
 
 @router.post("/links", response_model=FileLinkRead, status_code=201)
-async def create_file_link(body: FileLinkCreate, svc: FileSvc):
+async def create_file_link(body: FileLinkCreate, svc: FileSvc) -> FileLinkRead:
     return FileLinkRead.model_validate(await svc.create_link(body))
 
 
@@ -88,7 +88,7 @@ async def create_file_link(body: FileLinkCreate, svc: FileSvc):
 )
 async def list_file_links_for_target(
     target_type: str, target_id: uuid.UUID, svc: FileSvc
-):
+) -> list[FileLinkRead]:
     return [
         FileLinkRead.model_validate(link)
         for link in await svc.list_links_for_target(target_type, target_id)
@@ -96,5 +96,5 @@ async def list_file_links_for_target(
 
 
 @router.delete("/links/{link_id}", status_code=204)
-async def delete_file_link(link_id: uuid.UUID, svc: FileSvc):
+async def delete_file_link(link_id: uuid.UUID, svc: FileSvc) -> None:
     await svc.delete_link(link_id)

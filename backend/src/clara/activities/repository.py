@@ -1,6 +1,7 @@
 import uuid
+from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import Select, select
 from sqlalchemy.orm import selectinload
 
 from clara.activities.models import Activity, ActivityParticipant, ActivityType
@@ -14,7 +15,7 @@ class ActivityTypeRepository(BaseRepository[ActivityType]):
 class ActivityRepository(BaseRepository[Activity]):
     model = Activity
 
-    def _base_query(self):
+    def _base_query(self) -> Select[tuple[Activity]]:
         return (
             super()
             ._base_query()
@@ -24,7 +25,7 @@ class ActivityRepository(BaseRepository[Activity]):
 
     async def list_by_contact(
         self, contact_id: uuid.UUID, *, offset: int = 0, limit: int = 50
-    ):
+    ) -> Sequence[Activity]:
         stmt = (
             self._base_query()
             .join(ActivityParticipant)

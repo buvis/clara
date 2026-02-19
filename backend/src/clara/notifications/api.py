@@ -17,7 +17,7 @@ router = APIRouter()
 @router.get("", response_model=list[NotificationRead])
 async def list_notifications(
     vault_id: uuid.UUID, user: CurrentUser, db: Db, _access: VaultAccess
-):
+) -> list[NotificationRead]:
     stmt = (
         select(Notification)
         .where(
@@ -34,7 +34,7 @@ async def list_notifications(
 @router.get("/unread-count", response_model=UnreadCount)
 async def unread_count(
     vault_id: uuid.UUID, user: CurrentUser, db: Db, _access: VaultAccess
-):
+) -> UnreadCount:
     stmt = (
         select(func.count())
         .select_from(Notification)
@@ -56,7 +56,7 @@ async def mark_notification(
     user: CurrentUser,
     db: Db,
     _access: VaultAccess,
-):
+) -> NotificationRead:
     stmt = select(Notification).where(
         Notification.id == notification_id,
         Notification.vault_id == vault_id,
@@ -73,7 +73,7 @@ async def mark_notification(
 @router.post("/mark-all-read", status_code=204)
 async def mark_all_read(
     vault_id: uuid.UUID, user: CurrentUser, db: Db, _access: VaultAccess
-):
+) -> None:
     stmt = (
         update(Notification)
         .where(

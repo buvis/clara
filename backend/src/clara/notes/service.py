@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Sequence
 
 from clara.exceptions import NotFoundError
 from clara.notes.models import Note
@@ -10,7 +11,9 @@ class NoteService:
     def __init__(self, repo: NoteRepository) -> None:
         self.repo = repo
 
-    async def list_notes(self, *, offset: int = 0, limit: int = 50):
+    async def list_notes(
+        self, *, offset: int = 0, limit: int = 50
+    ) -> tuple[Sequence[Note], int]:
         return await self.repo.list(offset=offset, limit=limit)
 
     async def list_by_contact(
@@ -19,7 +22,7 @@ class NoteService:
         *,
         offset: int = 0,
         limit: int = 50,
-    ):
+    ) -> tuple[Sequence[Note], int]:
         return await self.repo.list_by_contact(
             contact_id, offset=offset, limit=limit
         )
@@ -30,7 +33,7 @@ class NoteService:
         *,
         offset: int = 0,
         limit: int = 50,
-    ):
+    ) -> tuple[Sequence[Note], int]:
         return await self.repo.list_by_activity(
             activity_id, offset=offset, limit=limit
         )

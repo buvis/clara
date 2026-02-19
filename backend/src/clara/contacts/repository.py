@@ -1,6 +1,7 @@
 import uuid
 from collections.abc import Sequence
 from datetime import date
+from typing import Any
 
 from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import selectinload
@@ -23,14 +24,14 @@ class ContactRepository(BaseRepository[Contact]):
 
     def _apply_filters(
         self,
-        stmt: Select[tuple[Contact]],
+        stmt: Select[Any],
         *,
         q: str | None = None,
         tag_ids: list[uuid.UUID] | None = None,
         favorites: bool | None = None,
         birthday_from: date | None = None,
         birthday_to: date | None = None,
-    ) -> Select[tuple[Contact]]:
+    ) -> Select[Any]:
         if q:
             pattern = f"%{q}%"
             stmt = stmt.where(
@@ -63,20 +64,19 @@ class ContactRepository(BaseRepository[Contact]):
         birthday_from: date | None = None,
         birthday_to: date | None = None,
     ) -> tuple[Sequence[Contact], int]:
-        filters = dict(
-            q=q, tag_ids=tag_ids, favorites=favorites,
-            birthday_from=birthday_from, birthday_to=birthday_to,
-        )
         count_stmt = self._apply_filters(
             select(func.count(func.distinct(self.model.id)))
             .select_from(self.model)
             .where(self.model.vault_id == self.vault_id)
             .where(self.model.deleted_at.is_(None)),
-            **filters,
+            q=q, tag_ids=tag_ids, favorites=favorites,
+            birthday_from=birthday_from, birthday_to=birthday_to,
         )
-        total = (await self.session.execute(count_stmt)).scalar_one()
+        total: int = (await self.session.execute(count_stmt)).scalar_one()
         items_stmt = self._apply_filters(
-            self._base_query(), **filters
+            self._base_query(),
+            q=q, tag_ids=tag_ids, favorites=favorites,
+            birthday_from=birthday_from, birthday_to=birthday_to,
         )
         if tag_ids:
             items_stmt = items_stmt.distinct()

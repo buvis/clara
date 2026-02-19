@@ -43,7 +43,7 @@ async def list_definitions(
     svc: CfSvc,
     scope: str | None = Query(None),
     pagination: PaginationParams = Depends(),
-):
+) -> PaginatedResponse[CustomFieldDefinitionRead]:
     items, total = await svc.list_definitions(
         scope=scope, offset=pagination.offset, limit=pagination.limit
     )
@@ -60,7 +60,9 @@ async def list_definitions(
     response_model=CustomFieldDefinitionRead,
     status_code=201,
 )
-async def create_definition(body: CustomFieldDefinitionCreate, svc: CfSvc):
+async def create_definition(
+    body: CustomFieldDefinitionCreate, svc: CfSvc
+) -> CustomFieldDefinitionRead:
     return CustomFieldDefinitionRead.model_validate(
         await svc.create_definition(body)
     )
@@ -70,7 +72,9 @@ async def create_definition(body: CustomFieldDefinitionCreate, svc: CfSvc):
     "/definitions/{definition_id}",
     response_model=CustomFieldDefinitionRead,
 )
-async def get_definition(definition_id: uuid.UUID, svc: CfSvc):
+async def get_definition(
+    definition_id: uuid.UUID, svc: CfSvc
+) -> CustomFieldDefinitionRead:
     return CustomFieldDefinitionRead.model_validate(
         await svc.get_definition(definition_id)
     )
@@ -84,14 +88,14 @@ async def update_definition(
     definition_id: uuid.UUID,
     body: CustomFieldDefinitionUpdate,
     svc: CfSvc,
-):
+) -> CustomFieldDefinitionRead:
     return CustomFieldDefinitionRead.model_validate(
         await svc.update_definition(definition_id, body)
     )
 
 
 @router.delete("/definitions/{definition_id}", status_code=204)
-async def delete_definition(definition_id: uuid.UUID, svc: CfSvc):
+async def delete_definition(definition_id: uuid.UUID, svc: CfSvc) -> None:
     await svc.delete_definition(definition_id)
 
 
@@ -101,7 +105,7 @@ async def delete_definition(definition_id: uuid.UUID, svc: CfSvc):
 )
 async def get_values_for_entity(
     entity_type: str, entity_id: uuid.UUID, svc: CfSvc
-):
+) -> list[CustomFieldValueRead]:
     return [
         CustomFieldValueRead.model_validate(v)
         for v in await svc.get_values_for_entity(entity_type, entity_id)
@@ -109,10 +113,10 @@ async def get_values_for_entity(
 
 
 @router.put("/values", response_model=CustomFieldValueRead)
-async def set_value(body: CustomFieldValueSet, svc: CfSvc):
+async def set_value(body: CustomFieldValueSet, svc: CfSvc) -> CustomFieldValueRead:
     return CustomFieldValueRead.model_validate(await svc.set_value(body))
 
 
 @router.delete("/values/{value_id}", status_code=204)
-async def delete_value(value_id: uuid.UUID, svc: CfSvc):
+async def delete_value(value_id: uuid.UUID, svc: CfSvc) -> None:
     await svc.delete_value(value_id)

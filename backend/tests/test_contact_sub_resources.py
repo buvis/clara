@@ -3,7 +3,7 @@ from httpx import AsyncClient
 
 from clara.auth.models import Vault
 
-from .conftest import create_contact
+from conftest import create_contact
 
 pytestmark = pytest.mark.asyncio
 

@@ -36,7 +36,7 @@ async def list_entries(
     pagination: PaginationParams = Depends(),
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
-):
+) -> PaginatedResponse[JournalEntryRead]:
     if date_from and date_to:
         items, total = await svc.list_by_date_range(
             date_from,
@@ -57,24 +57,24 @@ async def list_entries(
 
 
 @router.get("/{entry_id}", response_model=JournalEntryRead)
-async def get_entry(entry_id: uuid.UUID, svc: JournalSvc):
+async def get_entry(entry_id: uuid.UUID, svc: JournalSvc) -> JournalEntryRead:
     return JournalEntryRead.model_validate(await svc.get_entry(entry_id))
 
 
 @router.post("", response_model=JournalEntryRead, status_code=201)
-async def create_entry(body: JournalEntryCreate, svc: JournalSvc):
+async def create_entry(body: JournalEntryCreate, svc: JournalSvc) -> JournalEntryRead:
     return JournalEntryRead.model_validate(await svc.create_entry(body))
 
 
 @router.patch("/{entry_id}", response_model=JournalEntryRead)
 async def update_entry(
     entry_id: uuid.UUID, body: JournalEntryUpdate, svc: JournalSvc
-):
+) -> JournalEntryRead:
     return JournalEntryRead.model_validate(
         await svc.update_entry(entry_id, body)
     )
 
 
 @router.delete("/{entry_id}", status_code=204)
-async def delete_entry(entry_id: uuid.UUID, svc: JournalSvc):
+async def delete_entry(entry_id: uuid.UUID, svc: JournalSvc) -> None:
     await svc.delete_entry(entry_id)

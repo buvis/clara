@@ -14,6 +14,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.sql.expression import ColumnElement
 
 from clara.base.model import Base, VaultScopedModel
 
@@ -74,7 +75,7 @@ class Contact(VaultScopedModel):
 
     @full_name.inplace.expression
     @classmethod
-    def _full_name_expr(cls):
+    def _full_name_expr(cls) -> ColumnElement[str]:
         return func.concat(cls.first_name, " ", cls.last_name)
 
 

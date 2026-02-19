@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Sequence
 
 from clara.activities.models import Activity, ActivityType
 from clara.activities.repository import (
@@ -20,7 +21,9 @@ class ActivityTypeService:
     def __init__(self, repo: ActivityTypeRepository) -> None:
         self.repo = repo
 
-    async def list_types(self, *, offset: int = 0, limit: int = 50):
+    async def list_types(
+        self, *, offset: int = 0, limit: int = 50
+    ) -> tuple[Sequence[ActivityType], int]:
         return await self.repo.list(offset=offset, limit=limit)
 
     async def get_type(self, type_id: uuid.UUID) -> ActivityType:
@@ -52,7 +55,9 @@ class ActivityService:
         self.repo = repo
         self.participant_repo = participant_repo
 
-    async def list_activities(self, *, offset: int = 0, limit: int = 50):
+    async def list_activities(
+        self, *, offset: int = 0, limit: int = 50
+    ) -> tuple[Sequence[Activity], int]:
         return await self.repo.list(offset=offset, limit=limit)
 
     async def list_by_contact(
@@ -61,7 +66,7 @@ class ActivityService:
         *,
         offset: int = 0,
         limit: int = 50,
-    ):
+    ) -> Sequence[Activity]:
         return await self.repo.list_by_contact(
             contact_id, offset=offset, limit=limit
         )

@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Sequence
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
@@ -31,7 +32,9 @@ class TemplateRepository(BaseRepository[Template]):
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def list_with_pages(self, *, offset: int = 0, limit: int = 50):
+    async def list_with_pages(
+        self, *, offset: int = 0, limit: int = 50
+    ) -> tuple[Sequence[Template], int]:
         count_stmt = (
             select(func.count())
             .select_from(Template)
@@ -67,7 +70,7 @@ class CustomFieldDefinitionRepository(BaseRepository[CustomFieldDefinition]):
 
     async def list_by_scope(
         self, scope: str, *, offset: int = 0, limit: int = 50
-    ):
+    ) -> tuple[Sequence[CustomFieldDefinition], int]:
         count_stmt = (
             select(func.count())
             .select_from(CustomFieldDefinition)

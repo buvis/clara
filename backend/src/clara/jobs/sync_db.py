@@ -1,10 +1,10 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-_sync_session_factory: sessionmaker | None = None
+_sync_session_factory: sessionmaker[Session] | None = None
 
 
-def _get_factory() -> sessionmaker:
+def _get_factory() -> sessionmaker[Session]:
     global _sync_session_factory
     if _sync_session_factory is None:
         from clara.config import get_settings
@@ -16,4 +16,6 @@ def _get_factory() -> sessionmaker:
 
 
 def get_sync_session() -> Session:
-    return _get_factory()()
+    factory = _get_factory()
+    session: Session = factory()
+    return session

@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Sequence
 from datetime import date
 
 from clara.contacts.models import Contact
@@ -21,7 +22,7 @@ class ContactService:
         favorites: bool | None = None,
         birthday_from: date | None = None,
         birthday_to: date | None = None,
-    ):
+    ) -> tuple[Sequence[Contact], int]:
         return await self.repo.list_filtered(
             offset=offset, limit=limit, q=q, tag_ids=tag_ids,
             favorites=favorites, birthday_from=birthday_from,
@@ -57,5 +58,5 @@ class ContactService:
 
     async def search_contacts(
         self, query: str, *, offset: int = 0, limit: int = 50
-    ):
+    ) -> tuple[Sequence[Contact], int]:
         return await self.repo.search(query, offset=offset, limit=limit)

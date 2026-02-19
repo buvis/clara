@@ -29,7 +29,7 @@ async def list_gifts(
     pagination: PaginationParams = Depends(),
     direction: str | None = Query(None),
     contact_id: uuid.UUID | None = Query(None),
-):
+) -> PaginatedResponse[GiftRead]:
     if direction:
         items, total = await svc.list_by_direction(
             direction, offset=pagination.offset, limit=pagination.limit
@@ -51,20 +51,20 @@ async def list_gifts(
 
 
 @router.get("/{gift_id}", response_model=GiftRead)
-async def get_gift(gift_id: uuid.UUID, svc: GiftSvc):
+async def get_gift(gift_id: uuid.UUID, svc: GiftSvc) -> GiftRead:
     return GiftRead.model_validate(await svc.get_gift(gift_id))
 
 
 @router.post("", response_model=GiftRead, status_code=201)
-async def create_gift(body: GiftCreate, svc: GiftSvc):
+async def create_gift(body: GiftCreate, svc: GiftSvc) -> GiftRead:
     return GiftRead.model_validate(await svc.create_gift(body))
 
 
 @router.patch("/{gift_id}", response_model=GiftRead)
-async def update_gift(gift_id: uuid.UUID, body: GiftUpdate, svc: GiftSvc):
+async def update_gift(gift_id: uuid.UUID, body: GiftUpdate, svc: GiftSvc) -> GiftRead:
     return GiftRead.model_validate(await svc.update_gift(gift_id, body))
 
 
 @router.delete("/{gift_id}", status_code=204)
-async def delete_gift(gift_id: uuid.UUID, svc: GiftSvc):
+async def delete_gift(gift_id: uuid.UUID, svc: GiftSvc) -> None:
     await svc.delete_gift(gift_id)

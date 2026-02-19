@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Sequence
 
 from clara.customization.models import (
     CustomFieldDefinition,
@@ -35,7 +36,9 @@ class TemplateService:
         self.page_repo = page_repo
         self.module_repo = module_repo
 
-    async def list_templates(self, *, offset: int = 0, limit: int = 50):
+    async def list_templates(
+        self, *, offset: int = 0, limit: int = 50
+    ) -> tuple[Sequence[Template], int]:
         return await self.repo.list_with_pages(offset=offset, limit=limit)
 
     async def get_template(self, template_id: uuid.UUID) -> Template:
@@ -125,7 +128,7 @@ class CustomFieldService:
 
     async def list_definitions(
         self, *, scope: str | None = None, offset: int = 0, limit: int = 50
-    ):
+    ) -> tuple[Sequence[CustomFieldDefinition], int]:
         if scope:
             return await self.def_repo.list_by_scope(
                 scope, offset=offset, limit=limit
