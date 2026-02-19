@@ -1,9 +1,10 @@
 import sys
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import Row, func, select
 from sqlalchemy.orm import Session
 
 from clara.activities.models import Activity
@@ -23,7 +24,7 @@ class UserDigest:
 
 def _membership_rows(
     session: Session,
-) -> list[tuple[uuid.UUID, str, str, uuid.UUID, str]]:
+) -> Sequence[Row[tuple[uuid.UUID, str, str, uuid.UUID, str]]]:
     stmt = (
         select(User.id, User.email, User.name, Vault.id, Vault.name)
         .join(
@@ -70,7 +71,9 @@ def daily_digest() -> None:
             )
             .group_by(Reminder.vault_id)
         )
-        reminder_counts = dict(session.execute(reminders_stmt).all())
+        reminder_counts: dict[uuid.UUID, int] = dict(
+            session.execute(reminders_stmt).all()  # type: ignore[arg-type]
+        )
         tasks_stmt = (
             select(Task.vault_id, func.count(Task.id))
             .where(
@@ -81,7 +84,9 @@ def daily_digest() -> None:
             )
             .group_by(Task.vault_id)
         )
-        overdue_task_counts = dict(session.execute(tasks_stmt).all())
+        overdue_task_counts: dict[uuid.UUID, int] = dict(
+            session.execute(tasks_stmt).all()  # type: ignore[arg-type]
+        )
         summaries: dict[uuid.UUID, UserDigest] = {}
         for user_id, email, name, vault_id, vault_name in _membership_rows(session):
             due_reminders = reminder_counts.get(vault_id, 0)
@@ -127,7 +132,9 @@ def weekly_summary() -> None:
             )
             .group_by(Activity.vault_id)
         )
-        activity_counts = dict(session.execute(activity_stmt).all())
+        activity_counts: dict[uuid.UUID, int] = dict(
+            session.execute(activity_stmt).all()  # type: ignore[arg-type]
+        )
         overdue_stay_in_touch_counts: dict[uuid.UUID, int] = {}
         configs = (
             session.execute(

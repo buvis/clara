@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.orm import selectinload
 
 from clara.base.repository import BaseRepository
@@ -11,7 +11,7 @@ from clara.journal.models import JournalEntry
 class JournalEntryRepository(BaseRepository[JournalEntry]):
     model = JournalEntry
 
-    def _base_query(self):
+    def _base_query(self) -> Select[tuple[JournalEntry]]:
         return (
             super()._base_query()
             .options(selectinload(JournalEntry.contacts))

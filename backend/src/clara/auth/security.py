@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 import base64
 import hashlib
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import argon2
 import bcrypt
 import jwt
+from cryptography.fernet import Fernet
 
 from clara.config import get_settings
 
@@ -77,7 +81,7 @@ def create_2fa_temp_token(user_id: str) -> str:
     )
 
 
-def _decode_token(token: str, expected_type: str) -> dict | None:
+def _decode_token(token: str, expected_type: str) -> dict[str, Any] | None:
     settings = get_settings()
     try:
         payload = jwt.decode(
@@ -92,19 +96,19 @@ def _decode_token(token: str, expected_type: str) -> dict | None:
         return None
 
 
-def decode_access_token(token: str) -> dict | None:
+def decode_access_token(token: str) -> dict[str, Any] | None:
     return _decode_token(token, "access")
 
 
-def decode_refresh_token(token: str) -> dict | None:
+def decode_refresh_token(token: str) -> dict[str, Any] | None:
     return _decode_token(token, "refresh")
 
 
-def decode_reset_token(token: str) -> dict | None:
+def decode_reset_token(token: str) -> dict[str, Any] | None:
     return _decode_token(token, "reset")
 
 
-def decode_2fa_temp_token(token: str) -> dict | None:
+def decode_2fa_temp_token(token: str) -> dict[str, Any] | None:
     return _decode_token(token, "2fa_temp")
 
 
@@ -115,9 +119,7 @@ def _derive_encryption_key() -> bytes:
     ).digest()
 
 
-def _get_fernet():
-    from cryptography.fernet import Fernet
-
+def _get_fernet() -> Fernet:
     key = base64.urlsafe_b64encode(_derive_encryption_key())
     return Fernet(key)
 

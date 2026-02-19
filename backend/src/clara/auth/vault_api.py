@@ -30,7 +30,7 @@ class VaultCreate(BaseModel):
 
 
 @router.get("", response_model=list[VaultRead])
-async def list_vaults(user: CurrentUser, db: Db):
+async def list_vaults(user: CurrentUser, db: Db) -> list[VaultRead]:
     stmt = (
         select(Vault)
         .join(VaultMembership)
@@ -41,7 +41,7 @@ async def list_vaults(user: CurrentUser, db: Db):
 
 
 @router.post("", response_model=VaultRead, status_code=201)
-async def create_vault(body: VaultCreate, user: CurrentUser, db: Db):
+async def create_vault(body: VaultCreate, user: CurrentUser, db: Db) -> VaultRead:
     vault = Vault(name=body.name, owner_user_id=user.id)
     db.add(vault)
     await db.flush()
@@ -56,7 +56,7 @@ async def create_vault(body: VaultCreate, user: CurrentUser, db: Db):
 
 
 @router.get("/{vault_id}", response_model=VaultRead)
-async def get_vault(vault_id: uuid.UUID, user: CurrentUser, db: Db):
+async def get_vault(vault_id: uuid.UUID, user: CurrentUser, db: Db) -> VaultRead:
     stmt = (
         select(Vault)
         .join(VaultMembership)
@@ -74,7 +74,7 @@ async def delete_vault(
     vault_id: uuid.UUID,
     db: Db,
     _: VaultMembership = require_role("owner"),
-):
+) -> None:
     vault = await db.get(Vault, vault_id)
     if vault is None:
         raise HTTPException(status_code=404, detail="Vault not found")
@@ -90,7 +90,7 @@ async def list_members(
     vault_id: uuid.UUID,
     db: Db,
     _: VaultMembership = require_role("owner", "admin", "member"),
-):
+) -> list[MemberRead]:
     stmt = (
         select(VaultMembership)
         .where(VaultMembership.vault_id == vault_id)
@@ -120,7 +120,7 @@ async def invite_member(
     body: MemberInvite,
     db: Db,
     _: VaultMembership = require_role("owner", "admin"),
-):
+) -> MemberRead:
     user = (
         await db.execute(select(User).where(User.email == body.email))
     ).scalar_one_or_none()
@@ -157,7 +157,7 @@ async def update_member_role(
     body: MemberUpdate,
     db: Db,
     _: VaultMembership = require_role("owner", "admin"),
-):
+) -> MemberRead:
     stmt = select(VaultMembership).where(
         VaultMembership.user_id == user_id,
         VaultMembership.vault_id == vault_id,
@@ -195,7 +195,7 @@ async def remove_member(
     user_id: uuid.UUID,
     db: Db,
     _: VaultMembership = require_role("owner", "admin"),
-):
+) -> None:
     stmt = select(VaultMembership).where(
         VaultMembership.user_id == user_id,
         VaultMembership.vault_id == vault_id,
@@ -227,7 +227,7 @@ async def get_vault_settings(
     vault_id: uuid.UUID,
     db: Db,
     _: VaultMembership = require_role("owner", "admin"),
-):
+) -> VaultSettingsRead:
     stmt = select(VaultSettings).where(VaultSettings.vault_id == vault_id)
     settings = (await db.execute(stmt)).scalar_one_or_none()
     if settings is None:
@@ -241,7 +241,7 @@ async def update_vault_settings(
     body: VaultSettingsUpdate,
     db: Db,
     _: VaultMembership = require_role("owner", "admin"),
-):
+) -> VaultSettingsRead:
     stmt = select(VaultSettings).where(VaultSettings.vault_id == vault_id)
     settings = (await db.execute(stmt)).scalar_one_or_none()
     if settings is None:

@@ -203,7 +203,7 @@ vault_tags_router = APIRouter()
 @methods_router.get("", response_model=list[ContactMethodRead])
 async def list_contact_methods(
     contact_id: uuid.UUID, _contact: RequiredContact, repo: MethodRepo
-):
+) -> list[ContactMethodRead]:
     items = await repo.list_for_contact(contact_id)
     return [ContactMethodRead.model_validate(item) for item in items]
 
@@ -214,7 +214,7 @@ async def create_contact_method(
     body: ContactMethodCreate,
     _contact: RequiredContact,
     repo: MethodRepo,
-):
+) -> ContactMethodRead:
     item = await repo.create(contact_id=contact_id, **body.model_dump())
     return ContactMethodRead.model_validate(item)
 
@@ -226,7 +226,7 @@ async def update_contact_method(
     body: ContactMethodUpdate,
     _contact: RequiredContact,
     repo: MethodRepo,
-):
+) -> ContactMethodRead:
     item = await repo.get_for_contact(contact_id, method_id)
     if item is None:
         raise NotFoundError("ContactMethod", method_id)
@@ -243,7 +243,7 @@ async def delete_contact_method(
     method_id: uuid.UUID,
     _contact: RequiredContact,
     repo: MethodRepo,
-):
+) -> None:
     item = await repo.get_for_contact(contact_id, method_id)
     if item is None:
         raise NotFoundError("ContactMethod", method_id)
@@ -254,7 +254,7 @@ async def delete_contact_method(
 @addresses_router.get("", response_model=list[AddressRead])
 async def list_addresses(
     contact_id: uuid.UUID, _contact: RequiredContact, repo: AddressRepo
-):
+) -> list[AddressRead]:
     items = await repo.list_for_contact(contact_id)
     return [AddressRead.model_validate(item) for item in items]
 
@@ -265,7 +265,7 @@ async def create_address(
     body: AddressCreate,
     _contact: RequiredContact,
     repo: AddressRepo,
-):
+) -> AddressRead:
     item = await repo.create(contact_id=contact_id, **body.model_dump())
     return AddressRead.model_validate(item)
 
@@ -277,7 +277,7 @@ async def update_address(
     body: AddressUpdate,
     _contact: RequiredContact,
     repo: AddressRepo,
-):
+) -> AddressRead:
     item = await repo.get_for_contact(contact_id, address_id)
     if item is None:
         raise NotFoundError("Address", address_id)
@@ -294,7 +294,7 @@ async def delete_address(
     address_id: uuid.UUID,
     _contact: RequiredContact,
     repo: AddressRepo,
-):
+) -> None:
     item = await repo.get_for_contact(contact_id, address_id)
     if item is None:
         raise NotFoundError("Address", address_id)
@@ -305,7 +305,7 @@ async def delete_address(
 @relationships_router.get("", response_model=list[ContactRelationshipRead])
 async def list_relationships(
     contact_id: uuid.UUID, _contact: RequiredContact, repo: RelRepo
-):
+) -> list[ContactRelationshipRead]:
     items = await repo.list_for_contact(contact_id)
     return [ContactRelationshipRead.model_validate(item) for item in items]
 
@@ -320,7 +320,7 @@ async def create_relationship(
     db: Db,
     _contact: RequiredContact,
     repo: RelRepo,
-):
+) -> ContactRelationshipRead:
     await _get_contact_or_404(
         db=db, vault_id=vault_id, contact_id=body.other_contact_id
     )
@@ -352,7 +352,7 @@ async def delete_relationship(
     db: Db,
     _contact: RequiredContact,
     repo: RelRepo,
-):
+) -> None:
     relationship = await repo.get_for_contact(contact_id, relationship_id)
     if relationship is None:
         raise NotFoundError("ContactRelationship", relationship_id)
@@ -380,7 +380,11 @@ async def delete_relationship(
 
 
 @pets_router.get("", response_model=list[PetRead])
-async def list_pets(contact_id: uuid.UUID, _contact: RequiredContact, repo: PetRepo):
+async def list_pets(
+    contact_id: uuid.UUID,
+    _contact: RequiredContact,
+    repo: PetRepo,
+) -> list[PetRead]:
     items = await repo.list_for_contact(contact_id)
     return [PetRead.model_validate(item) for item in items]
 
@@ -391,7 +395,7 @@ async def create_pet(
     body: PetCreate,
     _contact: RequiredContact,
     repo: PetRepo,
-):
+) -> PetRead:
     item = await repo.create(contact_id=contact_id, **body.model_dump())
     return PetRead.model_validate(item)
 
@@ -403,7 +407,7 @@ async def update_pet(
     body: PetUpdate,
     _contact: RequiredContact,
     repo: PetRepo,
-):
+) -> PetRead:
     item = await repo.get_for_contact(contact_id, pet_id)
     if item is None:
         raise NotFoundError("Pet", pet_id)
@@ -420,7 +424,7 @@ async def delete_pet(
     pet_id: uuid.UUID,
     _contact: RequiredContact,
     repo: PetRepo,
-):
+) -> None:
     item = await repo.get_for_contact(contact_id, pet_id)
     if item is None:
         raise NotFoundError("Pet", pet_id)
@@ -433,7 +437,7 @@ async def list_contact_tags(
     contact_id: uuid.UUID,
     _contact: RequiredContact,
     repo: TagsRepo,
-):
+) -> list[TagRead]:
     stmt = (
         repo._base_query()
         .join(contact_tags, contact_tags.c.tag_id == Tag.id)
@@ -450,7 +454,7 @@ async def attach_tag(
     body: ContactTagAttach,
     _contact: RequiredContact,
     repo: TagsRepo,
-):
+) -> TagRead:
     tag = await repo.get_by_id(body.tag_id)
     if tag is None:
         raise NotFoundError("Tag", body.tag_id)
@@ -473,7 +477,7 @@ async def detach_tag(
     tag_id: uuid.UUID,
     _contact: RequiredContact,
     repo: TagsRepo,
-):
+) -> None:
     await repo.session.execute(
         delete(contact_tags).where(
             contact_tags.c.contact_id == contact_id,
@@ -483,12 +487,12 @@ async def detach_tag(
 
 
 @vault_tags_router.get("", response_model=list[TagRead])
-async def list_tags(repo: TagsRepo):
+async def list_tags(repo: TagsRepo) -> list[TagRead]:
     items = await repo.list_all()
     return [TagRead.model_validate(item) for item in items]
 
 
 @vault_tags_router.post("", response_model=TagRead, status_code=201)
-async def create_tag(body: TagCreate, repo: TagsRepo):
+async def create_tag(body: TagCreate, repo: TagsRepo) -> TagRead:
     item = await repo.create(**body.model_dump())
     return TagRead.model_validate(item)

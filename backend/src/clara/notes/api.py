@@ -29,7 +29,7 @@ async def list_notes(
     pagination: PaginationParams = Depends(),
     contact_id: uuid.UUID | None = None,
     activity_id: uuid.UUID | None = None,
-):
+) -> PaginatedResponse[NoteRead]:
     if contact_id is not None:
         items, total = await svc.list_by_contact(
             contact_id, offset=pagination.offset, limit=pagination.limit
@@ -51,21 +51,21 @@ async def list_notes(
 
 
 @router.get("/{note_id}", response_model=NoteRead)
-async def get_note(note_id: uuid.UUID, svc: NoteSvc):
+async def get_note(note_id: uuid.UUID, svc: NoteSvc) -> NoteRead:
     return NoteRead.model_validate(await svc.get_note(note_id))
 
 
 @router.post("", response_model=NoteRead, status_code=201)
-async def create_note(body: NoteCreate, svc: NoteSvc, user: CurrentUser):
+async def create_note(body: NoteCreate, svc: NoteSvc, user: CurrentUser) -> NoteRead:
     data = body.model_copy(update={"created_by_id": user.id})
     return NoteRead.model_validate(await svc.create_note(data))
 
 
 @router.patch("/{note_id}", response_model=NoteRead)
-async def update_note(note_id: uuid.UUID, body: NoteUpdate, svc: NoteSvc):
+async def update_note(note_id: uuid.UUID, body: NoteUpdate, svc: NoteSvc) -> NoteRead:
     return NoteRead.model_validate(await svc.update_note(note_id, body))
 
 
 @router.delete("/{note_id}", status_code=204)
-async def delete_note(note_id: uuid.UUID, svc: NoteSvc):
+async def delete_note(note_id: uuid.UUID, svc: NoteSvc) -> None:
     await svc.delete_note(note_id)

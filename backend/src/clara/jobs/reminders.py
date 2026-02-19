@@ -1,7 +1,9 @@
-from datetime import date, timedelta
+import uuid
+from datetime import UTC, date, datetime, timedelta
 
 from dateutil.relativedelta import relativedelta
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from clara.auth.models import VaultMembership
 from clara.jobs.sync_db import get_sync_session
@@ -11,15 +13,23 @@ from clara.reminders.models import Reminder, StayInTouchConfig
 
 def _next_date(today: date, freq: str, n: int) -> date:
     if freq == "week":
-        return today + timedelta(weeks=n)
-    if freq == "month":
-        return today + relativedelta(months=n)
-    if freq == "year":
-        return today + relativedelta(years=n)
-    return today + timedelta(days=30 * n)
+        result = today + timedelta(weeks=n)
+    elif freq == "month":
+        result = today + relativedelta(months=n)
+    elif freq == "year":
+        result = today + relativedelta(years=n)
+    else:
+        result = today + timedelta(days=30 * n)
+    return date(result.year, result.month, result.day)
 
 
-def _notify_vault_members(session, vault_id, title, body="", link=None):
+def _notify_vault_members(
+    session: Session,
+    vault_id: uuid.UUID,
+    title: str,
+    body: str = "",
+    link: str | None = None,
+) -> None:
     members = (
         session.execute(
             select(VaultMembership).where(
@@ -42,7 +52,7 @@ def _notify_vault_members(session, vault_id, title, body="", link=None):
         )
 
 
-def evaluate_reminders():
+def evaluate_reminders() -> None:
     """Daily job: trigger due reminders, compute next occurrence for recurring."""
     session = get_sync_session()
     try:
@@ -54,7 +64,7 @@ def evaluate_reminders():
         )
         reminders = session.execute(stmt).scalars().all()
         for r in reminders:
-            r.last_triggered_at = today
+            r.last_triggered_at = datetime.now(UTC)
             _notify_vault_members(
                 session, r.vault_id, f"Reminder: {r.title}",
                 link=f"/vaults/{r.vault_id}/reminders",
@@ -70,7 +80,7 @@ def evaluate_reminders():
         session.close()
 
 
-def evaluate_stay_in_touch():
+def evaluate_stay_in_touch() -> None:
     """Daily job: create reminders for contacts not contacted recently."""
     session = get_sync_session()
     try:

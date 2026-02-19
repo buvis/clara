@@ -4,11 +4,12 @@ import logging
 import secrets
 import string
 import uuid
+from typing import cast
 
 import pyotp
 import qrcode
 from fastapi import APIRouter, HTTPException, Request, Response
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from clara.auth.models import PersonalAccessToken, RecoveryCode, TotpDevice, User
 from clara.auth.schemas import (
@@ -55,7 +56,7 @@ LOGIN_RATE_WINDOW = 60  # seconds
 def _check_login_rate(request: Request) -> None:
     ip = request.client.host if request.client else "unknown"
     key = f"rate:login:{ip}"
-    count = redis_conn.incr(key)
+    count = cast(int, redis_conn.incr(key))
     if count == 1:
         redis_conn.expire(key, LOGIN_RATE_WINDOW)
     if count > LOGIN_RATE_LIMIT:
@@ -90,7 +91,7 @@ def _set_auth_cookies(response: Response, access: str, refresh: str) -> None:
 
 
 @router.post("/register", response_model=AuthResponse, status_code=201)
-async def register(body: RegisterRequest, db: Db, response: Response):
+async def register(body: RegisterRequest, db: Db, response: Response) -> AuthResponse:
     svc = AuthService(db)
     user, vault, access, refresh = await svc.register(body)
     _set_auth_cookies(response, access, refresh)
@@ -102,7 +103,12 @@ async def register(body: RegisterRequest, db: Db, response: Response):
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(body: LoginRequest, db: Db, response: Response, request: Request):
+async def login(
+    body: LoginRequest,
+    db: Db,
+    response: Response,
+    request: Request,
+) -> AuthResponse | TwoFactorChallengeResponse:
     _check_login_rate(request)
     svc = AuthService(db)
     result = await svc.login(body)
@@ -124,7 +130,7 @@ async def login(body: LoginRequest, db: Db, response: Response, request: Request
 
 
 @router.post("/forgot-password")
-async def forgot_password(body: ForgotPasswordRequest, db: Db):
+async def forgot_password(body: ForgotPasswordRequest, db: Db) -> dict[str, bool]:
     user = (
         await db.execute(select(User).where(User.email == body.email))
     ).scalar_one_or_none()
@@ -148,7 +154,7 @@ async def forgot_password(body: ForgotPasswordRequest, db: Db):
 
 
 @router.post("/reset-password")
-async def reset_password(body: ResetPasswordRequest, db: Db):
+async def reset_password(body: ResetPasswordRequest, db: Db) -> dict[str, bool]:
     payload = decode_reset_token(body.token)
     if payload is None:
         raise HTTPException(
@@ -163,7 +169,7 @@ async def reset_password(body: ResetPasswordRequest, db: Db):
 
 
 @router.post("/refresh", response_model=AuthResponse)
-async def refresh(request: Request, db: Db, response: Response):
+async def refresh(request: Request, db: Db, response: Response) -> AuthResponse:
     token = request.cookies.get("refresh_token")
     if not token:
         raise HTTPException(status_code=401, detail="No refresh token")
@@ -184,14 +190,14 @@ async def refresh(request: Request, db: Db, response: Response):
 
 
 @router.post("/logout")
-async def logout(response: Response):
+async def logout(response: Response) -> dict[str, bool]:
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
     return {"ok": True}
 
 
 @router.get("/me", response_model=UserRead)
-async def me(user: CurrentUser):
+async def me(user: CurrentUser) -> UserRead:
     return UserRead.model_validate(user)
 
 
@@ -212,7 +218,7 @@ def _build_qr_data_url(provisioning_uri: str) -> str:
 
 
 @router.post("/2fa/setup", response_model=TwoFactorSetupResponse)
-async def two_factor_setup(user: CurrentUser, db: Db):
+async def two_factor_setup(user: CurrentUser, db: Db) -> TwoFactorSetupResponse:
     existing_confirmed = (
         await db.execute(
             select(TotpDevice).where(
@@ -225,10 +231,10 @@ async def two_factor_setup(user: CurrentUser, db: Db):
         raise HTTPException(status_code=400, detail="2FA already enabled")
 
     await db.execute(
-        RecoveryCode.__table__.delete().where(RecoveryCode.user_id == user.id)
+        delete(RecoveryCode).where(RecoveryCode.user_id == user.id)
     )
     await db.execute(
-        TotpDevice.__table__.delete().where(
+        delete(TotpDevice).where(
             TotpDevice.user_id == user.id,
             TotpDevice.confirmed.is_(False),
         )
@@ -269,7 +275,7 @@ async def two_factor_setup(user: CurrentUser, db: Db):
 @router.post("/2fa/confirm")
 async def two_factor_confirm(
     body: TwoFactorConfirmRequest, user: CurrentUser, db: Db
-):
+) -> dict[str, bool]:
     device = (
         await db.execute(
             select(TotpDevice).where(
@@ -291,7 +297,9 @@ async def two_factor_confirm(
 
 
 @router.post("/2fa/verify", response_model=AuthResponse)
-async def two_factor_verify(body: TwoFactorVerifyRequest, db: Db, response: Response):
+async def two_factor_verify(
+    body: TwoFactorVerifyRequest, db: Db, response: Response
+) -> AuthResponse:
     payload = decode_2fa_temp_token(body.temp_token)
     if payload is None:
         raise HTTPException(
@@ -330,7 +338,7 @@ async def two_factor_verify(body: TwoFactorVerifyRequest, db: Db, response: Resp
 @router.post("/2fa/recovery", response_model=AuthResponse)
 async def two_factor_recovery(
     body: TwoFactorVerifyRequest, db: Db, response: Response
-):
+) -> AuthResponse:
     payload = decode_2fa_temp_token(body.temp_token)
     if payload is None:
         raise HTTPException(
@@ -372,12 +380,12 @@ async def two_factor_recovery(
 
 
 @router.delete("/2fa")
-async def two_factor_disable(user: CurrentUser, db: Db):
+async def two_factor_disable(user: CurrentUser, db: Db) -> dict[str, bool]:
     await db.execute(
-        TotpDevice.__table__.delete().where(TotpDevice.user_id == user.id)
+        delete(TotpDevice).where(TotpDevice.user_id == user.id)
     )
     await db.execute(
-        RecoveryCode.__table__.delete().where(RecoveryCode.user_id == user.id)
+        delete(RecoveryCode).where(RecoveryCode.user_id == user.id)
     )
     await db.flush()
     return {"ok": True}
@@ -387,7 +395,7 @@ async def two_factor_disable(user: CurrentUser, db: Db):
 
 
 @router.get("/tokens", response_model=list[PatRead])
-async def list_tokens(user: CurrentUser, db: Db):
+async def list_tokens(user: CurrentUser, db: Db) -> list[PatRead]:
     stmt = select(PersonalAccessToken).where(
         PersonalAccessToken.user_id == user.id
     )
@@ -410,7 +418,7 @@ async def list_tokens(user: CurrentUser, db: Db):
 
 
 @router.post("/tokens", response_model=PatCreateResponse, status_code=201)
-async def create_token(body: PatCreate, user: CurrentUser, db: Db):
+async def create_token(body: PatCreate, user: CurrentUser, db: Db) -> PatCreateResponse:
     import json
     from datetime import UTC, datetime, timedelta
 
@@ -443,7 +451,7 @@ async def create_token(body: PatCreate, user: CurrentUser, db: Db):
 
 
 @router.delete("/tokens/{token_id}", status_code=204)
-async def revoke_token(token_id: uuid.UUID, user: CurrentUser, db: Db):
+async def revoke_token(token_id: uuid.UUID, user: CurrentUser, db: Db) -> None:
     pat = await db.get(PersonalAccessToken, token_id)
     if pat is None or pat.user_id != user.id:
         raise HTTPException(status_code=404, detail="Token not found")

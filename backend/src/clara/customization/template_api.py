@@ -44,7 +44,7 @@ TplSvc = Annotated[TemplateService, Depends(get_template_service)]
 @router.get("", response_model=PaginatedResponse[TemplateRead])
 async def list_templates(
     svc: TplSvc, pagination: PaginationParams = Depends()
-):
+) -> PaginatedResponse[TemplateRead]:
     items, total = await svc.list_templates(
         offset=pagination.offset, limit=pagination.limit
     )
@@ -57,26 +57,26 @@ async def list_templates(
 
 
 @router.post("", response_model=TemplateRead, status_code=201)
-async def create_template(body: TemplateCreate, svc: TplSvc):
+async def create_template(body: TemplateCreate, svc: TplSvc) -> TemplateRead:
     return TemplateRead.model_validate(await svc.create_template(body))
 
 
 @router.get("/{template_id}", response_model=TemplateRead)
-async def get_template(template_id: uuid.UUID, svc: TplSvc):
+async def get_template(template_id: uuid.UUID, svc: TplSvc) -> TemplateRead:
     return TemplateRead.model_validate(await svc.get_template(template_id))
 
 
 @router.patch("/{template_id}", response_model=TemplateRead)
 async def update_template(
     template_id: uuid.UUID, body: TemplateUpdate, svc: TplSvc
-):
+) -> TemplateRead:
     return TemplateRead.model_validate(
         await svc.update_template(template_id, body)
     )
 
 
 @router.delete("/{template_id}", status_code=204)
-async def delete_template(template_id: uuid.UUID, svc: TplSvc):
+async def delete_template(template_id: uuid.UUID, svc: TplSvc) -> None:
     await svc.delete_template(template_id)
 
 
@@ -85,7 +85,7 @@ async def delete_template(template_id: uuid.UUID, svc: TplSvc):
 )
 async def add_page(
     template_id: uuid.UUID, body: TemplatePageCreate, svc: TplSvc
-):
+) -> TemplatePageRead:
     page = await svc.add_page(
         template_id, slug=body.slug, name=body.name, order=body.order
     )
@@ -106,7 +106,7 @@ async def add_page(
 @router.patch("/pages/{page_id}", response_model=TemplatePageRead)
 async def update_page(
     page_id: uuid.UUID, body: TemplatePageUpdate, svc: TplSvc
-):
+) -> TemplatePageRead:
     page = await svc.update_page(
         page_id, **body.model_dump(exclude_unset=True)
     )
@@ -114,7 +114,7 @@ async def update_page(
 
 
 @router.delete("/pages/{page_id}", status_code=204)
-async def delete_page(page_id: uuid.UUID, svc: TplSvc):
+async def delete_page(page_id: uuid.UUID, svc: TplSvc) -> None:
     await svc.delete_page(page_id)
 
 
@@ -125,7 +125,7 @@ async def delete_page(page_id: uuid.UUID, svc: TplSvc):
 )
 async def add_module(
     page_id: uuid.UUID, body: TemplateModuleCreate, svc: TplSvc
-):
+) -> TemplateModuleRead:
     module = await svc.add_module(
         page_id,
         module_type=body.module_type,
@@ -138,7 +138,7 @@ async def add_module(
 @router.patch("/modules/{module_id}", response_model=TemplateModuleRead)
 async def update_module(
     module_id: uuid.UUID, body: TemplateModuleUpdate, svc: TplSvc
-):
+) -> TemplateModuleRead:
     module = await svc.update_module(
         module_id, **body.model_dump(exclude_unset=True)
     )
@@ -146,5 +146,5 @@ async def update_module(
 
 
 @router.delete("/modules/{module_id}", status_code=204)
-async def delete_module(module_id: uuid.UUID, svc: TplSvc):
+async def delete_module(module_id: uuid.UUID, svc: TplSvc) -> None:
     await svc.delete_module(module_id)

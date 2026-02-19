@@ -1,7 +1,7 @@
 import json
 import uuid
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy import select
@@ -84,13 +84,13 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
         )
-    user = await session.get(User, uuid.UUID(payload["sub"]))
-    if user is None:
+    jwt_user = await session.get(User, uuid.UUID(payload["sub"]))
+    if jwt_user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
         )
-    return user
+    return jwt_user
 
 
 async def get_vault_membership(
@@ -115,7 +115,7 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 VaultAccess = Annotated[VaultMembership, Depends(get_vault_membership)]
 
 
-def require_role(*roles: str):
+def require_role(*roles: str) -> Any:
     """Dependency factory: checks membership role against allowed roles."""
 
     async def _check(

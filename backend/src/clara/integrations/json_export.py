@@ -1,6 +1,7 @@
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +22,7 @@ from clara.reminders.models import Reminder, StayInTouchConfig
 from clara.tasks.models import Task
 
 
-def _serialize(obj) -> dict:
+def _serialize(obj: Any) -> dict[str, Any]:
     result = {}
     for col in obj.__table__.columns:
         val = getattr(obj, col.name)
@@ -35,7 +36,9 @@ def _serialize(obj) -> dict:
     return result
 
 
-async def _fetch_all(session: AsyncSession, model, vault_id: uuid.UUID):
+async def _fetch_all(
+    session: AsyncSession, model: Any, vault_id: uuid.UUID
+) -> list[dict[str, Any]]:
     stmt = (
         select(model)
         .where(model.vault_id == vault_id)
@@ -47,7 +50,7 @@ async def _fetch_all(session: AsyncSession, model, vault_id: uuid.UUID):
 
 async def export_vault_json(
     session: AsyncSession, vault_id: uuid.UUID
-) -> dict:
+) -> dict[str, Any]:
     return {
         "vault_id": str(vault_id),
         "contacts": await _fetch_all(session, Contact, vault_id),

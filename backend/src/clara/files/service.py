@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Sequence
 
 from fastapi import UploadFile
 
@@ -22,7 +23,9 @@ class FileService:
         self.storage = storage
         self.uploader_id = uploader_id
 
-    async def list_files(self, *, offset: int = 0, limit: int = 50):
+    async def list_files(
+        self, *, offset: int = 0, limit: int = 50
+    ) -> tuple[Sequence[File], int]:
         return await self.repo.list(offset=offset, limit=limit)
 
     async def get_file(self, file_id: uuid.UUID) -> File:

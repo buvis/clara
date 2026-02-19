@@ -32,7 +32,7 @@ async def list_tasks(
     due_from: date | None = Query(None, description="Filter due_date >= this"),
     due_to: date | None = Query(None, description="Filter due_date <= this"),
     overdue: bool = Query(False, description="Only overdue tasks"),
-):
+) -> PaginatedResponse[TaskRead]:
     if overdue:
         items, total = await svc.list_overdue(
             offset=pagination.offset, limit=pagination.limit
@@ -58,20 +58,20 @@ async def list_tasks(
 
 
 @router.get("/{task_id}", response_model=TaskRead)
-async def get_task(task_id: uuid.UUID, svc: TaskSvc):
+async def get_task(task_id: uuid.UUID, svc: TaskSvc) -> TaskRead:
     return TaskRead.model_validate(await svc.get_task(task_id))
 
 
 @router.post("", response_model=TaskRead, status_code=201)
-async def create_task(body: TaskCreate, svc: TaskSvc):
+async def create_task(body: TaskCreate, svc: TaskSvc) -> TaskRead:
     return TaskRead.model_validate(await svc.create_task(body))
 
 
 @router.patch("/{task_id}", response_model=TaskRead)
-async def update_task(task_id: uuid.UUID, body: TaskUpdate, svc: TaskSvc):
+async def update_task(task_id: uuid.UUID, body: TaskUpdate, svc: TaskSvc) -> TaskRead:
     return TaskRead.model_validate(await svc.update_task(task_id, body))
 
 
 @router.delete("/{task_id}", status_code=204)
-async def delete_task(task_id: uuid.UUID, svc: TaskSvc):
+async def delete_task(task_id: uuid.UUID, svc: TaskSvc) -> None:
     await svc.delete_task(task_id)

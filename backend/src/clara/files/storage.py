@@ -22,7 +22,8 @@ class LocalStorage:
     async def read(self, key: str) -> bytes:
         path = self.base_path / key
         async with aiofiles.open(path, "rb") as f:
-            return await f.read()
+            data: bytes = await f.read()
+            return data
 
     async def delete(self, key: str) -> None:
         path = self.base_path / key

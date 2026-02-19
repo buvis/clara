@@ -1,4 +1,7 @@
-from fastapi import FastAPI, Request
+from collections.abc import Callable, Coroutine
+from typing import Any
+
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -27,15 +30,15 @@ def create_app() -> FastAPI:
     )
 
     @app.exception_handler(NotFoundError)
-    async def not_found_handler(request: Request, exc: NotFoundError):
+    async def not_found_handler(request: Request, exc: NotFoundError) -> JSONResponse:
         return JSONResponse(status_code=404, content={"detail": str(exc)})
 
     @app.exception_handler(ForbiddenError)
-    async def forbidden_handler(request: Request, exc: ForbiddenError):
+    async def forbidden_handler(request: Request, exc: ForbiddenError) -> JSONResponse:
         return JSONResponse(status_code=403, content={"detail": str(exc)})
 
     @app.exception_handler(ConflictError)
-    async def conflict_handler(request: Request, exc: ConflictError):
+    async def conflict_handler(request: Request, exc: ConflictError) -> JSONResponse:
         return JSONResponse(status_code=409, content={"detail": exc.detail})
 
     import time
@@ -44,7 +47,12 @@ def create_app() -> FastAPI:
     logger = structlog.get_logger()
 
     @app.middleware("http")
-    async def log_requests(request: Request, call_next):
+    async def log_requests(
+        request: Request,
+        call_next: Callable[
+            [Request], Coroutine[Any, Any, Response]
+        ],
+    ) -> Response:
         start = time.monotonic()
         response = await call_next(request)
         duration_ms = round((time.monotonic() - start) * 1000, 1)
@@ -58,7 +66,7 @@ def create_app() -> FastAPI:
         return response
 
     @app.get("/health")
-    async def health():
+    async def health() -> dict[str, str]:
         return {"status": "ok"}
 
     from clara.auth.api import router as auth_router

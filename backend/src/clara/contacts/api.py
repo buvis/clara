@@ -37,7 +37,7 @@ async def list_contacts(
     favorites: bool | None = None,
     birthday_from: date | None = None,
     birthday_to: date | None = None,
-):
+) -> PaginatedResponse[ContactRead]:
     tag_ids = (
         [uuid.UUID(t.strip()) for t in tags.split(",") if t.strip()]
         if tags
@@ -61,26 +61,26 @@ async def list_contacts(
 
 
 @router.get("/{contact_id}", response_model=ContactRead)
-async def get_contact(contact_id: uuid.UUID, svc: ContactSvc):
+async def get_contact(contact_id: uuid.UUID, svc: ContactSvc) -> ContactRead:
     return ContactRead.model_validate(await svc.get_contact(contact_id))
 
 
 @router.post("", response_model=ContactRead, status_code=201)
-async def create_contact(body: ContactCreate, svc: ContactSvc):
+async def create_contact(body: ContactCreate, svc: ContactSvc) -> ContactRead:
     return ContactRead.model_validate(await svc.create_contact(body))
 
 
 @router.patch("/{contact_id}", response_model=ContactRead)
 async def update_contact(
     contact_id: uuid.UUID, body: ContactUpdate, svc: ContactSvc
-):
+) -> ContactRead:
     return ContactRead.model_validate(
         await svc.update_contact(contact_id, body)
     )
 
 
 @router.delete("/{contact_id}", status_code=204)
-async def delete_contact(contact_id: uuid.UUID, svc: ContactSvc):
+async def delete_contact(contact_id: uuid.UUID, svc: ContactSvc) -> None:
     await svc.delete_contact(contact_id)
 
 
@@ -93,7 +93,7 @@ async def list_contact_activities(
     db: Db,
     _access: VaultAccess,
     pagination: PaginationParams = Depends(),
-):
+) -> PaginatedResponse[ActivityRead]:
     base = (
         select(Activity)
         .join(ActivityParticipant, ActivityParticipant.activity_id == Activity.id)

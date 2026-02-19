@@ -1,5 +1,6 @@
 import uuid
 from datetime import date
+from typing import Any
 
 import vobject
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -89,11 +90,11 @@ async def import_vcard(
     return created
 
 
-def _get_type_param(entry) -> str:
-    params = getattr(entry, "params", {})
+def _get_type_param(entry: Any) -> str:
+    params: dict[str, list[str]] = getattr(entry, "params", {})
     type_list = params.get("TYPE", [])
     if type_list:
-        return type_list[0].lower()
+        return str(type_list[0].lower())
     return ""
 
 

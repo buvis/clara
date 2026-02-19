@@ -1,4 +1,5 @@
 import uuid
+from collections.abc import Sequence
 from datetime import date
 
 from clara.exceptions import NotFoundError
@@ -15,12 +16,14 @@ class ReminderService:
     def __init__(self, repo: ReminderRepository) -> None:
         self.repo = repo
 
-    async def list_reminders(self, *, offset: int = 0, limit: int = 50):
+    async def list_reminders(
+        self, *, offset: int = 0, limit: int = 50
+    ) -> tuple[Sequence[Reminder], int]:
         return await self.repo.list(offset=offset, limit=limit)
 
     async def list_by_status(
         self, status: str, *, offset: int = 0, limit: int = 50
-    ):
+    ) -> tuple[Sequence[Reminder], int]:
         return await self.repo.list_by_status(
             status, offset=offset, limit=limit
         )
@@ -31,21 +34,21 @@ class ReminderService:
         *,
         offset: int = 0,
         limit: int = 50,
-    ):
+    ) -> tuple[Sequence[Reminder], int]:
         return await self.repo.list_by_contact(
             contact_id, offset=offset, limit=limit
         )
 
     async def list_upcoming(
         self, as_of: date, *, offset: int = 0, limit: int = 50
-    ):
+    ) -> tuple[Sequence[Reminder], int]:
         return await self.repo.list_upcoming(
             as_of, offset=offset, limit=limit
         )
 
     async def list_overdue(
         self, as_of: date, *, offset: int = 0, limit: int = 50
-    ):
+    ) -> tuple[Sequence[Reminder], int]:
         return await self.repo.list_overdue(
             as_of, offset=offset, limit=limit
         )

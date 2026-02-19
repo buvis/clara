@@ -30,7 +30,7 @@ async def list_debts(
     settled: bool | None = Query(None),
     direction: str | None = Query(None),
     contact_id: uuid.UUID | None = Query(None),
-):
+) -> PaginatedResponse[DebtRead]:
     if settled is not None:
         items, total = await svc.list_settled(
             settled, offset=pagination.offset, limit=pagination.limit
@@ -56,20 +56,20 @@ async def list_debts(
 
 
 @router.get("/{debt_id}", response_model=DebtRead)
-async def get_debt(debt_id: uuid.UUID, svc: DebtSvc):
+async def get_debt(debt_id: uuid.UUID, svc: DebtSvc) -> DebtRead:
     return DebtRead.model_validate(await svc.get_debt(debt_id))
 
 
 @router.post("", response_model=DebtRead, status_code=201)
-async def create_debt(body: DebtCreate, svc: DebtSvc):
+async def create_debt(body: DebtCreate, svc: DebtSvc) -> DebtRead:
     return DebtRead.model_validate(await svc.create_debt(body))
 
 
 @router.patch("/{debt_id}", response_model=DebtRead)
-async def update_debt(debt_id: uuid.UUID, body: DebtUpdate, svc: DebtSvc):
+async def update_debt(debt_id: uuid.UUID, body: DebtUpdate, svc: DebtSvc) -> DebtRead:
     return DebtRead.model_validate(await svc.update_debt(debt_id, body))
 
 
 @router.delete("/{debt_id}", status_code=204)
-async def delete_debt(debt_id: uuid.UUID, svc: DebtSvc):
+async def delete_debt(debt_id: uuid.UUID, svc: DebtSvc) -> None:
     await svc.delete_debt(debt_id)

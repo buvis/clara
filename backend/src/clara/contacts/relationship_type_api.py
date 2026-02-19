@@ -36,19 +36,21 @@ Repo = Annotated[RelationshipTypeRepository, Depends(get_repo)]
 
 
 @router.get("", response_model=list[RelationshipTypeRead])
-async def list_relationship_types(repo: Repo):
+async def list_relationship_types(repo: Repo) -> list[RelationshipTypeRead]:
     items = await repo.list_all()
     return [RelationshipTypeRead.model_validate(item) for item in items]
 
 
 @router.post("", response_model=RelationshipTypeRead, status_code=201)
-async def create_relationship_type(body: RelationshipTypeCreate, repo: Repo):
+async def create_relationship_type(
+    body: RelationshipTypeCreate, repo: Repo
+) -> RelationshipTypeRead:
     item = await repo.create(**body.model_dump())
     return RelationshipTypeRead.model_validate(item)
 
 
 @router.get("/{type_id}", response_model=RelationshipTypeRead)
-async def get_relationship_type(type_id: uuid.UUID, repo: Repo):
+async def get_relationship_type(type_id: uuid.UUID, repo: Repo) -> RelationshipTypeRead:
     item = await repo.get_by_id(type_id)
     if item is None:
         raise NotFoundError("RelationshipType", type_id)
@@ -58,7 +60,7 @@ async def get_relationship_type(type_id: uuid.UUID, repo: Repo):
 @router.patch("/{type_id}", response_model=RelationshipTypeRead)
 async def update_relationship_type(
     type_id: uuid.UUID, body: RelationshipTypeUpdate, repo: Repo
-):
+) -> RelationshipTypeRead:
     item = await repo.get_by_id(type_id)
     if item is None:
         raise NotFoundError("RelationshipType", type_id)
@@ -70,7 +72,7 @@ async def update_relationship_type(
 
 
 @router.delete("/{type_id}", status_code=204)
-async def delete_relationship_type(type_id: uuid.UUID, repo: Repo):
+async def delete_relationship_type(type_id: uuid.UUID, repo: Repo) -> None:
     item = await repo.get_by_id(type_id)
     if item is None:
         raise NotFoundError("RelationshipType", type_id)
