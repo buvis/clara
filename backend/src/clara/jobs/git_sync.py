@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import uuid
 from datetime import UTC, datetime
 
@@ -68,10 +69,8 @@ def run_git_sync(config_id: str) -> None:
         if repo:
             repo.cleanup()
         session.close()
-        try:
+        with contextlib.suppress(Exception):
             lock.release()
-        except Exception:
-            pass
 
 
 def schedule_git_syncs() -> None:
