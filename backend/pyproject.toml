@@ -25,6 +25,13 @@ dependencies = [
     "structlog>=24.0",
     "prometheus-fastapi-instrumentator>=7.0",
     "cryptography>=46.0.5",
+    "caldav>=1.4",
+    "icalendar>=6.0",
+    "python-frontmatter>=1.1",
+    "GitPython>=3.1",
+    "python-slugify>=8.0",
+    "requests>=2.31",
+    "defusedxml>=0.7",
 ]
 
 [project.optional-dependencies]
@@ -64,9 +71,31 @@ plugins = ["pydantic.mypy"]
 strict = true
 
 [[tool.mypy.overrides]]
-module = ["vobject.*", "qrcode.*"]
+module = [
+    "vobject.*",
+    "qrcode.*",
+    "frontmatter.*",
+    "caldav.*",
+    "icalendar.*",
+    "defusedxml.*",
+    "requests.*",
+    "slugify.*",
+    "cryptography.*",
+    "cryptography.fernet",
+    "git.*",
+]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "clara.dav_sync.converters.*",
+    "clara.dav_sync.client",
+    "clara.dav_sync.sync_engine",
+]
+disallow_untyped_calls = false
+warn_return_any = false
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+pythonpath = ["src"]

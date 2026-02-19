@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, Uuid
+from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from clara.base.model import VaultScopedModel
@@ -23,6 +23,7 @@ class Activity(VaultScopedModel):
     description: Mapped[str | None] = mapped_column(Text)
     happened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     location: Mapped[str | None] = mapped_column(String(500))
+    duration_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
     participants: Mapped[list["ActivityParticipant"]] = relationship(
         back_populates="activity", cascade="all, delete-orphan"
     )

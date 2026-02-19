@@ -18,6 +18,8 @@ import clara.finance.models  # noqa: F401
 import clara.files.models  # noqa: F401
 import clara.customization.models  # noqa: F401
 import clara.notifications.models  # noqa: F401
+import clara.dav_sync.models  # noqa: F401
+import clara.git_sync.models  # noqa: F401
 
 config = context.config
 settings = get_settings()
