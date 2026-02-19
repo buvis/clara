@@ -71,8 +71,29 @@ plugins = ["pydantic.mypy"]
 strict = true
 
 [[tool.mypy.overrides]]
-module = ["vobject.*", "qrcode.*"]
+module = [
+    "vobject.*",
+    "qrcode.*",
+    "frontmatter.*",
+    "caldav.*",
+    "icalendar.*",
+    "defusedxml.*",
+    "requests.*",
+    "slugify.*",
+    "cryptography.*",
+    "cryptography.fernet",
+    "git.*",
+]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = [
+    "clara.dav_sync.converters.*",
+    "clara.dav_sync.client",
+    "clara.dav_sync.sync_engine",
+]
+disallow_untyped_calls = false
+warn_return_any = false
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

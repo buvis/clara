@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Any
 
 import vobject
 
@@ -56,7 +57,7 @@ def contact_to_vcard(contact: Contact) -> vobject.vCard:
     return vc
 
 
-def vcard_to_contact_data(vcard: vobject.vCard) -> dict:
+def vcard_to_contact_data(vcard: vobject.vCard) -> dict[str, Any]:
     """Parse a vCard into a dict of Contact fields + sub-entity lists.
 
     Returns dict with keys:
@@ -95,7 +96,7 @@ def vcard_to_contact_data(vcard: vobject.vCard) -> dict:
         gender = vcard.gender.value or None
 
     # Contact methods
-    methods: list[dict] = []
+    methods: list[dict[str, Any]] = []
     for email_entry in getattr(vcard, "email_list", []):
         methods.append(
             {
@@ -114,7 +115,7 @@ def vcard_to_contact_data(vcard: vobject.vCard) -> dict:
         )
 
     # Addresses
-    addresses: list[dict] = []
+    addresses: list[dict[str, Any]] = []
     for adr_entry in getattr(vcard, "adr_list", []):
         adr = adr_entry.value
         addresses.append(
@@ -148,7 +149,7 @@ def vcard_to_contact_data(vcard: vobject.vCard) -> dict:
     }
 
 
-def _get_type_param(entry) -> str:
+def _get_type_param(entry: Any) -> str:
     params = getattr(entry, "params", {})
     type_list = params.get("TYPE", [])
     if type_list:

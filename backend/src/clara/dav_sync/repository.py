@@ -60,4 +60,4 @@ class DavSyncMappingRepository(BaseRepository[DavSyncMapping]):
             .group_by(DavSyncMapping.entity_type)
         )
         result = await self.session.execute(stmt)
-        return dict(result.all())
+        return dict(result.all())  # type: ignore[arg-type]

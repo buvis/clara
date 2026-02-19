@@ -1,9 +1,12 @@
 from datetime import datetime, timedelta
+from typing import Any
 
 from icalendar import Event
 
 
-def activity_to_vevent(activity, participant_names: list[str] | None = None) -> Event:
+def activity_to_vevent(
+    activity: Any, participant_names: list[str] | None = None
+) -> Event:
     """Convert Activity to iCalendar VEVENT."""
     event = Event()
     event.add("summary", activity.title)
@@ -22,7 +25,7 @@ def activity_to_vevent(activity, participant_names: list[str] | None = None) -> 
     return event
 
 
-def vevent_to_activity_data(event: Event) -> dict:
+def vevent_to_activity_data(event: Any) -> dict[str, Any]:
     """Parse VEVENT into Activity field dict.
 
     Returns dict with:

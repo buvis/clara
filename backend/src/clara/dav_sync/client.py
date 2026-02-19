@@ -45,7 +45,7 @@ class DavClient:
 
     # -- Connection test --
 
-    def test_connection(self) -> dict:
+    def test_connection(self) -> dict[str, str | None]:
         """Test connection and discover collections.
 
         Returns dict with carddav_path, caldav_path if found.

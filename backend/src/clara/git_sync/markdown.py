@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import Any
 
 import frontmatter
 import structlog
@@ -17,15 +18,15 @@ class MarkdownContactData:
     """Parsed representation of a contact markdown file."""
 
     markdown_id: str  # from frontmatter or filename
-    frontmatter_fields: dict  # raw YAML frontmatter
+    frontmatter_fields: dict[str, Any]  # raw YAML frontmatter
     sections: dict[str, str]  # section_name -> markdown content
     raw_content: str  # full file content
 
 
 def contact_to_markdown(
-    contact,
-    field_mapping: list[dict] | None = None,
-    section_mapping: list[dict] | None = None,
+    contact: Any,
+    field_mapping: list[dict[str, Any]] | None = None,
+    section_mapping: list[dict[str, Any]] | None = None,
     existing_markdown_id: str | None = None,
 ) -> str:
     """Convert a Contact + relations to a markdown file string.
@@ -36,7 +37,7 @@ def contact_to_markdown(
         section_mapping: body section config from GitSyncConfig.section_mapping_json
         existing_markdown_id: reuse existing ID if updating
     """
-    fm: dict = {}
+    fm: dict[str, Any] = {}
 
     if field_mapping:
         for entry in field_mapping:
@@ -107,13 +108,13 @@ def contact_to_markdown(
     body = "\n\n".join(body_parts)
 
     post = frontmatter.Post(body, **fm)
-    return frontmatter.dumps(post) + "\n"
+    return frontmatter.dumps(post) + "\n"  # type: ignore[no-any-return]
 
 
 def markdown_to_contact_data(
     content: str,
-    field_mapping: list[dict] | None = None,
-) -> dict:
+    field_mapping: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     """Parse markdown file into contact creation/update data.
 
     Returns dict with:
@@ -128,8 +129,8 @@ def markdown_to_contact_data(
     fm = dict(post.metadata)
     body = post.content
 
-    contact_fields: dict = {}
-    contact_methods: list[dict] = []
+    contact_fields: dict[str, Any] = {}
+    contact_methods: list[dict[str, Any]] = []
     tags: list[str] = []
 
     if field_mapping:
@@ -208,8 +209,8 @@ def markdown_to_contact_data(
     sections = _parse_sections(body)
 
     # Parse structured sections into typed data
-    activities: list[dict] = []
-    relationships: list[dict] = []
+    activities: list[dict[str, Any]] = []
+    relationships: list[dict[str, Any]] = []
     for name, content in sections.items():
         if name.lower() in ("timeline", "activities"):
             activities.extend(_parse_activities_from_section(content))
@@ -227,7 +228,9 @@ def markdown_to_contact_data(
     }
 
 
-def _resolve_field_source(contact, entry: dict):
+def _resolve_field_source(
+    contact: Any, entry: dict[str, Any],
+) -> Any:
     """Resolve a field mapping entry to a value from the contact."""
     source = entry.get("source", "")
 
@@ -276,7 +279,9 @@ def _resolve_field_source(contact, entry: dict):
     return None
 
 
-def _build_section_content(contact, section_type: str, entry: dict) -> str:
+def _build_section_content(
+    contact: Any, section_type: str, entry: dict[str, Any],
+) -> str:
     """Build body section content based on type."""
     if section_type == "note":
         title = entry.get("title", "")
@@ -308,14 +313,14 @@ def _build_section_content(contact, section_type: str, entry: dict) -> str:
     return ""
 
 
-def _parse_full_name(full_name: str, fields: dict) -> None:
+def _parse_full_name(full_name: str, fields: dict[str, Any]) -> None:
     """Split a full name into first_name and last_name."""
     parts = full_name.strip().split(" ", 1)
     fields["first_name"] = parts[0]
     fields["last_name"] = parts[1] if len(parts) > 1 else ""
 
 
-def _coerce_field(field_name: str, value):
+def _coerce_field(field_name: str, value: Any) -> Any:
     """Coerce a frontmatter value to the expected type."""
     if field_name in ("birthdate", "created_at") and isinstance(value, str):
         try:
@@ -325,16 +330,16 @@ def _coerce_field(field_name: str, value):
     return value
 
 
-def _parse_activities_from_section(content: str) -> list[dict]:
+def _parse_activities_from_section(content: str) -> list[dict[str, Any]]:
     """Parse ``- YYYY-MM-DD: title`` or ``- YYYY-MM-DD: title (type)``."""
-    results: list[dict] = []
+    results: list[dict[str, Any]] = []
     for line in content.split("\n"):
         m = re.match(
             r"^-\s+(\d{4}-\d{2}-\d{2}):\s+(.+?)(?:\s+\(([^)]+)\))?\s*$", line
         )
         if not m:
             continue
-        entry: dict = {"title": m.group(2).strip()}
+        entry: dict[str, Any] = {"title": m.group(2).strip()}
         try:
             entry["happened_at"] = date.fromisoformat(m.group(1))
         except ValueError:
@@ -345,9 +350,9 @@ def _parse_activities_from_section(content: str) -> list[dict]:
     return results
 
 
-def _parse_relationships_from_section(content: str) -> list[dict]:
+def _parse_relationships_from_section(content: str) -> list[dict[str, Any]]:
     """Parse bullet list: ``- Full Name (relationship_type)``."""
-    results: list[dict] = []
+    results: list[dict[str, Any]] = []
     for line in content.split("\n"):
         m = re.match(r"^-\s+(.+?)\s+\(([^)]+)\)\s*$", line)
         if not m:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 import redis
 import rq
@@ -51,7 +52,7 @@ class DavSyncService:
     async def delete_account(self, account_id: uuid.UUID) -> None:
         await self.account_repo.soft_delete(account_id)
 
-    async def test_connection(self, account_id: uuid.UUID) -> dict:
+    async def test_connection(self, account_id: uuid.UUID) -> dict[str, str | None]:
         account = await self.get_account(account_id)
         password = decrypt_credential(account.encrypted_password)
         client = DavClient(account.server_url, account.username, password)
@@ -65,7 +66,7 @@ class DavSyncService:
         q = rq.Queue(connection=conn)
         q.enqueue("clara.jobs.dav_sync.sync_dav_account", str(account_id))
 
-    async def get_status(self, account_id: uuid.UUID) -> dict:
+    async def get_status(self, account_id: uuid.UUID) -> dict[str, Any]:
         account = await self.get_account(account_id)
         counts = await self.mapping_repo.count_by_account(account_id)
         return {

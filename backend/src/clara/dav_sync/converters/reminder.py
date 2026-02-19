@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Any
 
 from icalendar import Todo
 
@@ -6,7 +7,7 @@ _FREQ_TO_RRULE = {"week": "WEEKLY", "month": "MONTHLY", "year": "YEARLY"}
 _FREQ_FROM_RRULE = {v: k for k, v in _FREQ_TO_RRULE.items()}
 
 
-def reminder_to_vtodo(reminder) -> Todo:
+def reminder_to_vtodo(reminder: Any) -> Todo:
     """Convert Reminder to VTODO with RRULE."""
     todo = Todo()
     todo.add("summary", reminder.title)
@@ -26,7 +27,7 @@ def reminder_to_vtodo(reminder) -> Todo:
     return todo
 
 
-def vtodo_to_reminder_data(todo: Todo) -> dict:
+def vtodo_to_reminder_data(todo: Any) -> dict[str, Any]:
     """Parse VTODO+RRULE into Reminder field dict."""
     title = str(todo.get("summary", ""))
     description = str(todo.get("description", "")) or None

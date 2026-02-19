@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Any
 
 from icalendar import Todo
 
@@ -13,7 +14,7 @@ _PRIORITY_TO_VTODO = {0: 0, 1: 1, 2: 5, 3: 9}
 _PRIORITY_FROM_VTODO = {0: 0, 1: 1, 5: 2, 9: 3}
 
 
-def task_to_vtodo(task) -> Todo:
+def task_to_vtodo(task: Any) -> Todo:
     """Convert Task to iCalendar VTODO."""
     todo = Todo()
     todo.add("summary", task.title)
@@ -27,7 +28,7 @@ def task_to_vtodo(task) -> Todo:
     return todo
 
 
-def vtodo_to_task_data(todo: Todo) -> dict:
+def vtodo_to_task_data(todo: Any) -> dict[str, Any]:
     """Parse VTODO into Task field dict."""
     title = str(todo.get("summary", ""))
     description = str(todo.get("description", "")) or None

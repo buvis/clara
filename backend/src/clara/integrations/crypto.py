@@ -16,9 +16,11 @@ def _get_fernet() -> Fernet:
 
 def encrypt_credential(plaintext: str) -> str:
     """Encrypt a credential string, return base64-encoded ciphertext."""
-    return _get_fernet().encrypt(plaintext.encode()).decode()
+    result: str = _get_fernet().encrypt(plaintext.encode()).decode()
+    return result
 
 
 def decrypt_credential(ciphertext: str) -> str:
     """Decrypt a base64-encoded ciphertext back to plaintext."""
-    return _get_fernet().decrypt(ciphertext.encode()).decode()
+    result: str = _get_fernet().decrypt(ciphertext.encode()).decode()
+    return result

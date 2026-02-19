@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
+from typing import Any
 
 import redis
 import rq
 
 from clara.config import get_settings
 from clara.exceptions import NotFoundError
-from clara.git_sync.models import GitSyncConfig
+from clara.git_sync.models import GitSyncConfig, GitSyncMapping
 from clara.git_sync.repository import GitSyncConfigRepository, GitSyncMappingRepository
 from clara.git_sync.schemas import GitSyncConfigCreate, GitSyncConfigUpdate
 from clara.integrations.crypto import encrypt_credential
@@ -53,7 +55,7 @@ class GitSyncService:
         q = rq.Queue(connection=conn)
         q.enqueue("clara.jobs.git_sync.run_git_sync", str(config.id))
 
-    async def get_status(self) -> dict:
+    async def get_status(self) -> dict[str, Any]:
         config = await self.get_config()
         count = await self.mapping_repo.count_by_config(config.id)
         return {
@@ -63,11 +65,13 @@ class GitSyncService:
             "mapping_count": count,
         }
 
-    async def list_mappings(self):
+    async def list_mappings(
+        self,
+    ) -> Sequence[GitSyncMapping]:
         config = await self.get_config()
         return await self.mapping_repo.list_by_config(config.id)
 
-    async def test_connection(self) -> dict:
+    async def test_connection(self) -> dict[str, Any]:
         """Clone to temp dir to verify access."""
         import tempfile
 

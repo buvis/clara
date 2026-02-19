@@ -257,7 +257,7 @@ def _execute_sync_item(
         item.mapping.deleted_at = datetime.now(UTC)
 
 
-def _get_model_class(entity_type: str):
+def _get_model_class(entity_type: str) -> type[Any]:
     return {
         "contact": Contact,
         "activity": Activity,
@@ -305,7 +305,9 @@ def _create_local_from_remote(
             return activity
         if component.name == "VTODO":
             # Disambiguate: RRULE → reminder, else → task
-            clara_type = str(component.get("x-clara-entity-type", ""))
+            clara_type = str(
+                component.get("x-clara-entity-type", "")
+            )
             has_rrule = component.get("rrule") is not None
             if entity_type == "reminder" or (
                 entity_type not in ("task",) and (clara_type == "reminder" or has_rrule)

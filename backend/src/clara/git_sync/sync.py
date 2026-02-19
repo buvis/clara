@@ -8,6 +8,7 @@ import uuid
 from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
+from typing import Any
 
 import structlog
 from slugify import slugify
@@ -89,7 +90,7 @@ def run_sync(session: Session, config: GitSyncConfig, repo: GitRepo) -> dict[str
     contacts = session.query(Contact).filter(Contact.vault_id == vault_id).all()
     contact_by_id: dict[uuid.UUID, Contact] = {c.id: c for c in contacts}
 
-    actions: list[tuple[SyncAction, dict]] = []
+    actions: list[tuple[SyncAction, dict[str, Any]]] = []
 
     # Check each markdown file
     for path in md_files:
@@ -252,8 +253,8 @@ def _create_contact_from_file(
     config: GitSyncConfig,
     repo: GitRepo,
     vault_id: uuid.UUID,
-    data: dict,
-    field_mapping: list[dict] | None,
+    data: dict[str, Any],
+    field_mapping: list[dict[str, Any]] | None,
     subfolder: str,
 ) -> None:
     content = data["content"]
@@ -294,8 +295,8 @@ def _create_file_from_contact(
     config: GitSyncConfig,
     repo: GitRepo,
     contact: Contact,
-    field_mapping: list[dict] | None,
-    section_mapping: list[dict] | None,
+    field_mapping: list[dict[str, Any]] | None,
+    section_mapping: list[dict[str, Any]] | None,
     subfolder: str,
 ) -> None:
     now = datetime.now(UTC)
@@ -322,8 +323,8 @@ def _create_file_from_contact(
 def _update_contact_from_file(
     session: Session,
     vault_id: uuid.UUID,
-    data: dict,
-    field_mapping: list[dict] | None,
+    data: dict[str, Any],
+    field_mapping: list[dict[str, Any]] | None,
 ) -> None:
     contact = data["contact"]
     content = data["content"]
@@ -345,9 +346,9 @@ def _update_file_from_contact(
     session: Session,
     config: GitSyncConfig,
     repo: GitRepo,
-    data: dict,
-    field_mapping: list[dict] | None,
-    section_mapping: list[dict] | None,
+    data: dict[str, Any],
+    field_mapping: list[dict[str, Any]] | None,
+    section_mapping: list[dict[str, Any]] | None,
 ) -> None:
     contact = data["contact"]
     mapping = data["mapping"]
@@ -364,7 +365,10 @@ def _update_file_from_contact(
 
 
 def _apply_sub_entities(
-    session: Session, vault_id: uuid.UUID, contact: Contact, parsed: dict
+    session: Session,
+    vault_id: uuid.UUID,
+    contact: Contact,
+    parsed: dict[str, Any],
 ) -> None:
     """Apply contact_methods, addresses, tags, activities, relationships."""
     # Full replace contact methods
@@ -495,7 +499,7 @@ def _parse_git_timestamp(ts: str | None) -> datetime | None:
         return None
 
 
-def _parse_json(json_str: str | None) -> list[dict] | None:
+def _parse_json(json_str: str | None) -> list[dict[str, Any]] | None:
     if not json_str:
         return None
     import json
