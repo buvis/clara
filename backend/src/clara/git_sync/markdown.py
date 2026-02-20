@@ -12,6 +12,8 @@ import structlog
 
 logger = structlog.get_logger()
 
+_PHOTO_RE = re.compile(r"!\[.*?\|.*?\]\((assets/[^)]+)\)")
+
 
 @dataclass
 class MarkdownContactData:
@@ -71,6 +73,12 @@ def contact_to_markdown(
 
     # Build body sections
     body_parts: list[str] = []
+
+    # Photo reference
+    photo_path = getattr(contact, "_photo_path", None)
+    if photo_path:
+        full_name = f"{contact.first_name} {contact.last_name}".strip() or "photo"
+        body_parts.append(f"![{full_name} photo|180]({photo_path})")
 
     if section_mapping:
         for entry in section_mapping:
@@ -217,6 +225,10 @@ def markdown_to_contact_data(
         elif name.lower() == "relationships":
             relationships.extend(_parse_relationships_from_section(content))
 
+    # Photo reference
+    photo_match = _PHOTO_RE.search(body)
+    photo_path = photo_match.group(1) if photo_match else None
+
     return {
         "contact_fields": contact_fields,
         "contact_methods": contact_methods,
@@ -225,6 +237,7 @@ def markdown_to_contact_data(
         "sections": sections,
         "activities": activities,
         "relationships": relationships,
+        "photo_path": photo_path,
     }
 
 

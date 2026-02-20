@@ -212,7 +212,9 @@ def run_sync(session: Session, config: GitSyncConfig, repo: GitRepo) -> dict[str
                 )
                 add_count += 1
             elif action == SyncAction.UPDATE_FROM_FILE:
-                _update_contact_from_file(session, vault_id, data, field_mapping)
+                _update_contact_from_file(
+                    session, vault_id, data, field_mapping, subfolder, repo
+                )
                 update_count += 1
             elif action == SyncAction.UPDATE_FROM_DB:
                 _update_file_from_contact(
@@ -274,6 +276,7 @@ def _create_contact_from_file(
         session.flush()
 
     _apply_sub_entities(session, vault_id, contact, parsed)
+    _import_photo(session, vault_id, contact.id, parsed, subfolder, repo)
 
     now = datetime.now(UTC)
     md_id = _generate_markdown_id()
@@ -301,8 +304,14 @@ def _create_file_from_contact(
 ) -> None:
     now = datetime.now(UTC)
     md_id = _generate_markdown_id()
-    filename = f"{slugify(contact.full_name)}.md"
+    name_slug = slugify(contact.full_name)
+    filename = f"{name_slug}.md"
     path = f"{subfolder}/{filename}" if subfolder else filename
+
+    # Export photo
+    photo_rel = _export_photo(session, contact, name_slug, subfolder, repo)
+    if photo_rel:
+        contact._photo_path = photo_rel  # type: ignore[attr-defined]
 
     content = contact_to_markdown(contact, field_mapping, section_mapping, md_id)
     repo.write_file(path, content)
@@ -325,6 +334,8 @@ def _update_contact_from_file(
     vault_id: uuid.UUID,
     data: dict[str, Any],
     field_mapping: list[dict[str, Any]] | None,
+    subfolder: str,
+    repo: GitRepo,
 ) -> None:
     contact = data["contact"]
     content = data["content"]
@@ -335,6 +346,7 @@ def _update_contact_from_file(
         setattr(contact, k, v)
 
     _apply_sub_entities(session, vault_id, contact, parsed)
+    _import_photo(session, vault_id, contact.id, parsed, subfolder, repo)
 
     now = datetime.now(UTC)
     mapping.file_hash = data["file_hash"]
@@ -352,6 +364,13 @@ def _update_file_from_contact(
 ) -> None:
     contact = data["contact"]
     mapping = data["mapping"]
+    subfolder = config.subfolder or ""
+
+    # Export photo
+    name_slug = slugify(contact.full_name)
+    photo_rel = _export_photo(session, contact, name_slug, subfolder, repo)
+    if photo_rel:
+        contact._photo_path = photo_rel
 
     content = contact_to_markdown(
         contact, field_mapping, section_mapping, mapping.markdown_id
@@ -484,6 +503,74 @@ def _apply_sub_entities(
         )
 
     session.flush()
+
+
+def _export_photo(
+    session: Session,
+    contact: Contact,
+    name_slug: str,
+    subfolder: str,
+    repo: GitRepo,
+) -> str | None:
+    """Export contact photo to git repo assets/ folder. Returns relative asset path."""
+    from clara.config import get_settings
+    from clara.files.models import File
+
+    photo_file_id = getattr(contact, "photo_file_id", None)
+    if not photo_file_id:
+        return None
+    file_rec = session.get(File, photo_file_id)
+    if not file_rec:
+        return None
+    storage_path = Path(get_settings().storage_path) / file_rec.storage_key
+    if not storage_path.exists():
+        return None
+    photo_data = storage_path.read_bytes()
+    ext = Path(file_rec.filename).suffix or ".jpeg"
+    asset_rel = f"assets/{name_slug}{ext}"
+    asset_path = f"{subfolder}/{asset_rel}" if subfolder else asset_rel
+    repo.write_binary(asset_path, photo_data)
+    return asset_rel
+
+
+def _import_photo(
+    session: Session,
+    vault_id: uuid.UUID,
+    contact_id: uuid.UUID,
+    parsed: dict[str, Any],
+    subfolder: str,
+    repo: GitRepo,
+) -> None:
+    """Import photo from git repo into local file storage."""
+    from clara.config import get_settings
+    from clara.files.models import File
+
+    photo_path = parsed.get("photo_path")
+    if not photo_path:
+        return
+    full_path = f"{subfolder}/{photo_path}" if subfolder else photo_path
+    try:
+        photo_data = repo.read_binary(full_path)
+    except Exception:
+        return
+    filename = Path(photo_path).name
+    storage_key = f"{uuid.uuid4()}/{filename}"
+    dest = Path(get_settings().storage_path) / storage_key
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_bytes(photo_data)
+    file_rec = File(
+        vault_id=vault_id,
+        uploader_id=uuid.UUID(int=0),
+        storage_key=storage_key,
+        filename=filename,
+        mime_type="image/jpeg",
+        size_bytes=len(photo_data),
+    )
+    session.add(file_rec)
+    session.flush()
+    contact = session.get(Contact, contact_id)
+    if contact:
+        contact.photo_file_id = file_rec.id
 
 
 def _hash(content: str) -> str:
