@@ -1,13 +1,12 @@
 <script lang="ts">
   import { page } from '$app/state';
-  import { debtsApi } from '$api/debts';
-  import type { DebtCreateInput } from '$api/debts';
+  import { debtsApi, type DebtCreateInput, type DebtUpdateInput } from '$api/debts';
   import DataList from '$components/data/DataList.svelte';
   import Button from '$components/ui/Button.svelte';
   import Badge from '$components/ui/Badge.svelte';
   import Modal from '$components/ui/Modal.svelte';
   import Input from '$components/ui/Input.svelte';
-  import { Plus, DollarSign } from 'lucide-svelte';
+  import { Plus, DollarSign, Pencil, Trash2 } from 'lucide-svelte';
   import type { Debt } from '$lib/types/models';
   import { lookup } from '$state/lookup.svelte';
 
@@ -17,6 +16,11 @@
   let createForm = $state<DebtCreateInput>({ contact_id: '', direction: 'you_owe', amount: 0 });
   let creating = $state(false);
   let listKey = $state(0);
+  let editingDebt = $state<Debt | null>(null);
+  let deletingDebt = $state<Debt | null>(null);
+  let editForm = $state<DebtUpdateInput>({});
+  let saving = $state(false);
+  let deleting = $state(false);
 
   const filters = [
     { label: 'You Owe', value: 'you_owe' },
@@ -44,6 +48,43 @@
       listKey++;
     } finally {
       creating = false;
+    }
+  }
+
+  function startEdit(debt: Debt) {
+    editForm = {
+      contact_id: debt.contact_id,
+      direction: debt.direction,
+      amount: debt.amount,
+      currency: debt.currency ?? '',
+      due_date: debt.due_date ?? '',
+      settled: debt.settled,
+      notes: debt.notes ?? ''
+    };
+    editingDebt = debt;
+  }
+
+  async function handleEdit() {
+    if (!editingDebt) return;
+    saving = true;
+    try {
+      await debtsApi.update(vaultId, editingDebt.id, editForm);
+      listKey++;
+      editingDebt = null;
+    } finally {
+      saving = false;
+    }
+  }
+
+  async function handleDelete() {
+    if (!deletingDebt) return;
+    deleting = true;
+    try {
+      await debtsApi.del(vaultId, deletingDebt.id);
+      listKey++;
+      deletingDebt = null;
+    } finally {
+      deleting = false;
     }
   }
 
@@ -82,6 +123,8 @@
             {:else}
               <Button variant="ghost" size="sm" onclick={() => toggleSettled(item)}>Settle</Button>
             {/if}
+            <button onclick={() => startEdit(item)} class="shrink-0 text-neutral-400 hover:text-neutral-300"><Pencil size={14} /></button>
+            <button onclick={() => (deletingDebt = item)} class="shrink-0 text-neutral-400 hover:text-red-400"><Trash2 size={14} /></button>
           </div>
         </div>
       {/snippet}
@@ -122,5 +165,55 @@
         <Button type="submit" loading={creating}>Create</Button>
       </div>
     </form>
+  </Modal>
+{/if}
+
+{#if editingDebt}
+  <Modal title="Edit Debt" onclose={() => (editingDebt = null)}>
+    <form onsubmit={handleEdit} class="space-y-4">
+      <div>
+        <label class="mb-1 block text-sm font-medium text-neutral-300">Contact</label>
+        <select bind:value={editForm.contact_id} required class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500">
+          <option value="">Select contact...</option>
+          {#each lookup.contacts as c}
+            <option value={c.id}>{c.name}</option>
+          {/each}
+        </select>
+      </div>
+      <div>
+        <label class="mb-1 block text-sm font-medium text-neutral-300">Direction</label>
+        <select bind:value={editForm.direction} class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500">
+          <option value="you_owe">You Owe</option>
+          <option value="owed_to_you">Owed to You</option>
+        </select>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <Input label="Amount" type="number" step="0.01" min="0.01" bind:value={editForm.amount} required />
+        <Input label="Currency" bind:value={editForm.currency} placeholder="USD" />
+      </div>
+      <Input label="Due date" type="date" bind:value={editForm.due_date} />
+      <label class="flex items-center gap-2 text-sm text-neutral-300">
+        <input type="checkbox" bind:checked={editForm.settled} class="h-4 w-4 accent-brand-500" />
+        Settled
+      </label>
+      <div>
+        <label class="mb-1 block text-sm font-medium text-neutral-300">Notes</label>
+        <textarea bind:value={editForm.notes} rows="2" class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"></textarea>
+      </div>
+      <div class="flex justify-end gap-3">
+        <Button variant="ghost" onclick={() => (editingDebt = null)}>Cancel</Button>
+        <Button type="submit" loading={saving}>Save</Button>
+      </div>
+    </form>
+  </Modal>
+{/if}
+
+{#if deletingDebt}
+  <Modal title="Delete Debt" onclose={() => (deletingDebt = null)}>
+    <p class="text-sm text-neutral-400">Delete this debt? This cannot be undone.</p>
+    <div class="mt-4 flex justify-end gap-3">
+      <Button variant="ghost" onclick={() => (deletingDebt = null)}>Cancel</Button>
+      <Button variant="danger" loading={deleting} onclick={handleDelete}>Delete</Button>
+    </div>
   </Modal>
 {/if}
