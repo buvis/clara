@@ -95,6 +95,12 @@ export interface ActivityType {
   created_at: string;
 }
 
+export interface ActivityParticipant {
+  id: string;
+  contact_id: string;
+  role: string;
+}
+
 export interface Activity {
   id: string;
   vault_id: string;
@@ -103,6 +109,7 @@ export interface Activity {
   description: string | null;
   happened_at: string;
   location: string | null;
+  participants: ActivityParticipant[];
   created_at: string;
   updated_at: string;
 }
