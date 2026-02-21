@@ -20,8 +20,16 @@ export const giftsApi = {
     return api.get<PaginatedResponse<Gift>>(`/vaults/${vaultId}/gifts${qs(params ?? {})}`);
   },
 
+  get(vaultId: string, giftId: string) {
+    return api.get<Gift>(`/vaults/${vaultId}/gifts/${giftId}`);
+  },
+
   create(vaultId: string, data: GiftCreateInput) {
     return api.post<Gift>(`/vaults/${vaultId}/gifts`, data);
+  },
+
+  update(vaultId: string, giftId: string, data: GiftUpdateInput) {
+    return api.patch<Gift>(`/vaults/${vaultId}/gifts/${giftId}`, data);
   },
 
   del(vaultId: string, giftId: string) {

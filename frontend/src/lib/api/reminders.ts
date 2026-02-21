@@ -18,6 +18,10 @@ export const remindersApi = {
     return api.get<PaginatedResponse<Reminder>>(`/vaults/${vaultId}/reminders${qs(params ?? {})}`);
   },
 
+  get(vaultId: string, reminderId: string) {
+    return api.get<Reminder>(`/vaults/${vaultId}/reminders/${reminderId}`);
+  },
+
   create(vaultId: string, data: ReminderCreateInput) {
     return api.post<Reminder>(`/vaults/${vaultId}/reminders`, data);
   },

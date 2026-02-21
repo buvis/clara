@@ -2,12 +2,18 @@ import { api, qs } from '$api/client';
 import type { Activity, ActivityType } from '$lib/types/models';
 import type { PaginatedResponse } from '$lib/types/common';
 
+export interface ParticipantInput {
+  contact_id: string;
+  role?: string;
+}
+
 export interface ActivityCreateInput {
   activity_type_id?: string | null;
   title: string;
   description?: string | null;
   happened_at: string;
   location?: string | null;
+  participants?: ParticipantInput[];
 }
 
 export type ActivityUpdateInput = Partial<ActivityCreateInput>;

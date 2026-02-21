@@ -19,6 +19,10 @@ export const debtsApi = {
     return api.get<PaginatedResponse<Debt>>(`/vaults/${vaultId}/debts${qs(params ?? {})}`);
   },
 
+  get(vaultId: string, debtId: string) {
+    return api.get<Debt>(`/vaults/${vaultId}/debts/${debtId}`);
+  },
+
   create(vaultId: string, data: DebtCreateInput) {
     return api.post<Debt>(`/vaults/${vaultId}/debts`, data);
   },

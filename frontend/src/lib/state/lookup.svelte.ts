@@ -33,7 +33,7 @@ class LookupState {
     if (this.activityTypesLoaded) return;
     try {
       const res = await api.get<PaginatedResponse<ActivityType>>(
-        `/vaults/${vaultId}/activity-types?limit=200`
+        `/vaults/${vaultId}/activities/types?limit=200`
       );
       this.activityTypes = res.items;
       this.activityTypesLoaded = true;

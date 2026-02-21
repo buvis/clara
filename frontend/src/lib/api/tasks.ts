@@ -19,6 +19,10 @@ export const tasksApi = {
     return api.get<PaginatedResponse<Task>>(`/vaults/${vaultId}/tasks${qs(params ?? {})}`);
   },
 
+  get(vaultId: string, taskId: string) {
+    return api.get<Task>(`/vaults/${vaultId}/tasks/${taskId}`);
+  },
+
   create(vaultId: string, data: TaskCreateInput) {
     return api.post<Task>(`/vaults/${vaultId}/tasks`, data);
   },
