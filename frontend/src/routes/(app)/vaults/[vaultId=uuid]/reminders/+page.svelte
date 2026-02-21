@@ -1,14 +1,15 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { remindersApi } from '$api/reminders';
-  import type { ReminderCreateInput } from '$api/reminders';
+  import type { ReminderCreateInput, ReminderUpdateInput } from '$api/reminders';
   import DataList from '$components/data/DataList.svelte';
   import Button from '$components/ui/Button.svelte';
   import Badge from '$components/ui/Badge.svelte';
   import Modal from '$components/ui/Modal.svelte';
   import Input from '$components/ui/Input.svelte';
-  import { Plus, Bell, BellOff } from 'lucide-svelte';
+  import { Plus, Bell, BellOff, Pencil, Trash2 } from 'lucide-svelte';
   import type { Reminder } from '$lib/types/models';
+  import { lookup } from '$state/lookup.svelte';
 
   const vaultId = $derived(page.params.vaultId!);
 
@@ -21,11 +22,20 @@
   });
   let creating = $state(false);
   let listKey = $state(0);
+  let editingReminder = $state<Reminder | null>(null);
+  let deletingReminder = $state<Reminder | null>(null);
+  let editForm = $state<ReminderUpdateInput>({});
+  let saving = $state(false);
+  let deleting = $state(false);
 
   const filters = [
     { label: 'Active', value: 'active' },
     { label: 'Completed', value: 'completed' }
   ];
+
+  $effect(() => {
+    lookup.loadContacts(vaultId);
+  });
 
   async function loadReminders(params: { offset: number; limit: number; search: string; filter: string | null }) {
     return remindersApi.list(vaultId, {
@@ -52,6 +62,43 @@
   async function markCompleted(reminder: Reminder) {
     await remindersApi.update(vaultId, reminder.id, { status: 'completed' });
     listKey++;
+  }
+
+  function startEdit(reminder: Reminder) {
+    editForm = {
+      contact_id: reminder.contact_id ?? '',
+      title: reminder.title,
+      description: reminder.description,
+      next_expected_date: reminder.next_expected_date,
+      frequency_type: reminder.frequency_type,
+      frequency_number: reminder.frequency_number,
+      status: reminder.status
+    };
+    editingReminder = reminder;
+  }
+
+  async function handleEdit() {
+    if (!editingReminder) return;
+    saving = true;
+    try {
+      await remindersApi.update(vaultId, editingReminder.id, editForm);
+      listKey++;
+      editingReminder = null;
+    } finally {
+      saving = false;
+    }
+  }
+
+  async function handleDelete() {
+    if (!deletingReminder) return;
+    deleting = true;
+    try {
+      await remindersApi.del(vaultId, deletingReminder.id);
+      listKey++;
+      deletingReminder = null;
+    } finally {
+      deleting = false;
+    }
   }
 
   function formatDate(d: string): string {
@@ -98,6 +145,8 @@
             {#if item.status === 'active'}
               <Button variant="ghost" size="sm" onclick={() => markCompleted(item)}>Done</Button>
             {/if}
+            <button onclick={() => startEdit(item)} class="shrink-0 text-neutral-400 hover:text-neutral-300"><Pencil size={14} /></button>
+            <button onclick={() => (deletingReminder = item)} class="shrink-0 text-neutral-400 hover:text-red-400"><Trash2 size={14} /></button>
           </div>
         </div>
       {/snippet}
@@ -131,5 +180,60 @@
         <Button type="submit" loading={creating}>Create</Button>
       </div>
     </form>
+  </Modal>
+{/if}
+
+{#if editingReminder}
+  <Modal title="Edit Reminder" onclose={() => (editingReminder = null)}>
+    <form onsubmit={handleEdit} class="space-y-4">
+      <div>
+        <label class="mb-1 block text-sm font-medium text-neutral-300">Contact</label>
+        <select bind:value={editForm.contact_id} class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500">
+          <option value="">No contact</option>
+          {#each lookup.contacts as contact}
+            <option value={contact.id}>{contact.name}</option>
+          {/each}
+        </select>
+      </div>
+      <Input label="Title" bind:value={editForm.title} required />
+      <div>
+        <label class="mb-1 block text-sm font-medium text-neutral-300">Description</label>
+        <textarea bind:value={editForm.description} rows="2" class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"></textarea>
+      </div>
+      <Input label="Date" type="date" bind:value={editForm.next_expected_date} required />
+      <div>
+        <label class="mb-1 block text-sm font-medium text-neutral-300">Frequency</label>
+        <select bind:value={editForm.frequency_type} class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500">
+          <option value="one_time">One time</option>
+          <option value="week">Every X weeks</option>
+          <option value="month">Every X months</option>
+          <option value="year">Every X years</option>
+        </select>
+      </div>
+      {#if editForm.frequency_type !== 'one_time'}
+        <Input label="Every" type="number" min="1" bind:value={editForm.frequency_number} />
+      {/if}
+      <div>
+        <label class="mb-1 block text-sm font-medium text-neutral-300">Status</label>
+        <select bind:value={editForm.status} class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500">
+          <option value="active">Active</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+      <div class="flex justify-end gap-3">
+        <Button variant="ghost" onclick={() => (editingReminder = null)}>Cancel</Button>
+        <Button type="submit" loading={saving}>Save</Button>
+      </div>
+    </form>
+  </Modal>
+{/if}
+
+{#if deletingReminder}
+  <Modal title="Delete Reminder" onclose={() => (deletingReminder = null)}>
+    <p class="text-sm text-neutral-400">Delete this reminder? This cannot be undone.</p>
+    <div class="mt-4 flex justify-end gap-3">
+      <Button variant="ghost" onclick={() => (deletingReminder = null)}>Cancel</Button>
+      <Button variant="danger" loading={deleting} onclick={handleDelete}>Delete</Button>
+    </div>
   </Modal>
 {/if}
