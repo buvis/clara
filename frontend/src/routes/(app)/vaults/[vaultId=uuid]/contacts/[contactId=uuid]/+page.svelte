@@ -11,6 +11,7 @@
   import PetsSection from '$components/contacts/PetsSection.svelte';
   import TagsSection from '$components/contacts/TagsSection.svelte';
   import RelationshipsSection from '$components/contacts/RelationshipsSection.svelte';
+  import CustomFieldsSection from '$components/customization/CustomFieldsSection.svelte';
   import Spinner from '$components/ui/Spinner.svelte';
   import Button from '$components/ui/Button.svelte';
   import Input from '$components/ui/Input.svelte';
@@ -216,6 +217,7 @@
           <TagsSection {vaultId} {contactId} />
           <PetsSection {vaultId} {contactId} />
           <RelationshipsSection {vaultId} {contactId} />
+          <CustomFieldsSection {vaultId} entityType="contact" entityId={contactId} />
         </div>
 
       {:else if tabLoading}

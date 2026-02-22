@@ -10,6 +10,7 @@
   import Modal from '$components/ui/Modal.svelte';
   import Badge from '$components/ui/Badge.svelte';
   import ParticipantsEditor from '$components/activities/ParticipantsEditor.svelte';
+  import CustomFieldsSection from '$components/customization/CustomFieldsSection.svelte';
   import { ArrowLeft, Pencil, Trash2, Save, X } from 'lucide-svelte';
   import type { Activity } from '$lib/types/models';
 
@@ -206,6 +207,8 @@
             </div>
           </div>
         {/if}
+
+        <CustomFieldsSection {vaultId} entityType="activity" entityId={activityId} />
       </div>
     {/if}
   </div>

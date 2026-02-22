@@ -8,6 +8,7 @@
   import Input from '$components/ui/Input.svelte';
   import Modal from '$components/ui/Modal.svelte';
   import Badge from '$components/ui/Badge.svelte';
+  import CustomFieldsSection from '$components/customization/CustomFieldsSection.svelte';
   import { ArrowLeft, Pencil, Trash2, Save, X } from 'lucide-svelte';
   import type { Task } from '$lib/types/models';
   import { lookup } from '$state/lookup.svelte';
@@ -204,6 +205,8 @@
         {#if task.activity_id}
            <div class="text-xs text-neutral-600 font-mono">Linked Activity: {task.activity_id}</div>
         {/if}
+
+        <CustomFieldsSection {vaultId} entityType="task" entityId={taskId} />
       </div>
     {/if}
   </div>
