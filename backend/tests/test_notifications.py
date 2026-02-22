@@ -106,6 +106,37 @@ async def test_delete_notification(
     assert notif_id not in ids
 
 
+async def test_clear_read_notifications(
+    authenticated_client: AsyncClient,
+    vault: Vault,
+    user: User,
+    db_session: AsyncSession,
+):
+    for _ in range(3):
+        await _create_notification(db_session, vault.id, user.id)
+
+    resp = await authenticated_client.get(
+        f"/api/v1/vaults/{vault.id}/notifications"
+    )
+    items = resp.json()
+    for notif in items[:2]:
+        await authenticated_client.patch(
+            f"/api/v1/vaults/{vault.id}/notifications/{notif['id']}",
+            json={"read": True},
+        )
+
+    resp = await authenticated_client.delete(
+        f"/api/v1/vaults/{vault.id}/notifications/clear-read"
+    )
+    assert resp.status_code == 204
+
+    resp = await authenticated_client.get(
+        f"/api/v1/vaults/{vault.id}/notifications"
+    )
+    remaining = resp.json()
+    assert all(not n["read"] for n in remaining)
+
+
 async def test_delete_notification_not_found(
     authenticated_client: AsyncClient,
     vault: Vault,

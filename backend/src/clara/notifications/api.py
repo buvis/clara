@@ -92,6 +92,24 @@ async def mark_all_read(
     await db.flush()
 
 
+@router.delete("/clear-read", status_code=204)
+async def clear_read_notifications(
+    vault_id: uuid.UUID, user: CurrentUser, db: Db, _access: VaultAccess
+) -> None:
+    stmt = (
+        update(Notification)
+        .where(
+            Notification.vault_id == vault_id,
+            Notification.user_id == user.id,
+            Notification.read.is_(True),
+            Notification.deleted_at.is_(None),
+        )
+        .values(deleted_at=datetime.now(UTC))
+    )
+    await db.execute(stmt)
+    await db.flush()
+
+
 @router.delete("/{notification_id}", status_code=204)
 async def delete_notification(
     vault_id: uuid.UUID,
