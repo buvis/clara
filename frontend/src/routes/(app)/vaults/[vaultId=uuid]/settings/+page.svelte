@@ -6,10 +6,11 @@
   import { customizationApi } from '$api/customization';
   import type { TemplateCreateInput, CustomFieldCreateInput } from '$api/customization';
   import { relationshipTypesApi } from '$api/contacts';
+  import { activitiesApi } from '$api/activities';
   import { tokensApi } from '$api/tokens';
   import type { PatCreateInput, PatCreateResponse } from '$api/tokens';
   import type { TwoFactorSetupResponse } from '$api/types';
-  import type { Member, Template, CustomField, RelationshipType, PersonalAccessToken } from '$lib/types/models';
+  import type { Member, Template, CustomField, RelationshipType, ActivityType, PersonalAccessToken } from '$lib/types/models';
   import Button from '$components/ui/Button.svelte';
   import Badge from '$components/ui/Badge.svelte';
   import Input from '$components/ui/Input.svelte';
@@ -18,7 +19,7 @@
 
   const vaultId = $derived(page.params.vaultId!);
 
-  const tabs = ['General', 'Members', 'Templates', 'Custom Fields', 'Relationship Types', 'Security', 'Import/Export'] as const;
+  const tabs = ['General', 'Members', 'Templates', 'Custom Fields', 'Relationship Types', 'Activity Types', 'Security', 'Import/Export'] as const;
   type Tab = (typeof tabs)[number];
   let activeTab = $state<Tab>('General');
 
@@ -65,6 +66,14 @@
   let editRelTypeId = $state<string | null>(null);
   let relTypeForm = $state({ name: '', inverse_type_id: '' });
   let relTypeSaving = $state(false);
+
+  let activityTypes = $state<ActivityType[]>([]);
+  let activityTypesLoading = $state(true);
+  let showActivityTypeModal = $state(false);
+  let editActivityTypeId = $state<string | null>(null);
+  let activityTypeForm = $state<{ name: string; icon: string; color: string }>({ name: '', icon: '', color: '#6b7280' });
+  let activityTypeSaving = $state(false);
+  let activityTypeDeleteId = $state<string | null>(null);
 
   let tokens = $state<PersonalAccessToken[]>([]);
   let tokensLoading = $state(true);
@@ -405,6 +414,42 @@
     relTypes = relTypes.filter((rt) => rt.id !== id);
   }
 
+  // --- Activity Types CRUD ---
+  function openActivityTypeCreate() {
+    editActivityTypeId = null;
+    activityTypeForm = { name: '', icon: '', color: '#6b7280' };
+    showActivityTypeModal = true;
+  }
+
+  function openActivityTypeEdit(t: ActivityType) {
+    editActivityTypeId = t.id;
+    activityTypeForm = { name: t.name, icon: t.icon, color: t.color };
+    showActivityTypeModal = true;
+  }
+
+  async function handleActivityTypeSave(e: Event) {
+    e.preventDefault();
+    activityTypeSaving = true;
+    try {
+      if (editActivityTypeId) {
+        const updated = await activitiesApi.updateType(vaultId, editActivityTypeId, activityTypeForm);
+        activityTypes = activityTypes.map((t) => (t.id === updated.id ? updated : t));
+      } else {
+        const created = await activitiesApi.createType(vaultId, activityTypeForm);
+        activityTypes = [...activityTypes, created];
+      }
+      showActivityTypeModal = false;
+    } finally {
+      activityTypeSaving = false;
+    }
+  }
+
+  async function handleActivityTypeDelete(id: string) {
+    await activitiesApi.deleteType(vaultId, id);
+    activityTypes = activityTypes.filter((t) => t.id !== id);
+    activityTypeDeleteId = null;
+  }
+
   // --- PAT CRUD ---
   async function loadTokens() {
     tokensLoading = true;
@@ -466,6 +511,13 @@
     if (activeTab === 'Templates') loadTemplates();
     if (activeTab === 'Custom Fields') loadCustomFields();
     if (activeTab === 'Relationship Types') loadRelTypes();
+    if (activeTab === 'Activity Types') {
+      activityTypesLoading = true;
+      activitiesApi.listTypes(vaultId, { limit: 100 }).then((r) => {
+        activityTypes = r.items;
+        activityTypesLoading = false;
+      });
+    }
     if (activeTab === 'Security') loadTokens();
   });
 </script>
@@ -785,6 +837,64 @@
           <div class="flex justify-end gap-3">
             <Button variant="ghost" onclick={() => (showRelTypeModal = false)}>Cancel</Button>
             <Button type="submit" loading={relTypeSaving}>Save</Button>
+          </div>
+        </form>
+      </Modal>
+    {/if}
+  {/if}
+
+  {#if activeTab === 'Activity Types'}
+    <section class="space-y-4 rounded-xl border border-neutral-800 bg-neutral-900 p-6">
+      <div class="flex items-center justify-between">
+        <h2 class="text-lg font-semibold text-white">Activity Types</h2>
+        <Button size="sm" onclick={openActivityTypeCreate}>Add type</Button>
+      </div>
+      {#if activityTypesLoading}
+        <p class="text-sm text-neutral-500">Loading activity types…</p>
+      {:else if activityTypes.length === 0}
+        <p class="text-sm text-neutral-500">No activity types configured.</p>
+      {:else}
+        <div class="space-y-2">
+          {#each activityTypes as t (t.id)}
+            <div class="group flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2">
+              <div class="flex items-center gap-3">
+                <div class="h-3 w-3 rounded-full" style="background-color: {t.color}"></div>
+                <p class="text-sm font-medium text-white">{t.name}</p>
+                {#if t.icon}
+                  <span class="text-xs text-neutral-500">{t.icon}</span>
+                {/if}
+              </div>
+              <div class="flex items-center gap-2">
+                {#if activityTypeDeleteId === t.id}
+                  <span class="text-xs text-red-400">Delete?</span>
+                  <Button size="sm" variant="danger" onclick={() => handleActivityTypeDelete(t.id)}>Yes</Button>
+                  <Button size="sm" variant="ghost" onclick={() => (activityTypeDeleteId = null)}>No</Button>
+                {:else}
+                  <button onclick={() => openActivityTypeEdit(t)} class="text-neutral-600 opacity-0 transition hover:text-white group-hover:opacity-100"><Pencil size={14} /></button>
+                  <button onclick={() => (activityTypeDeleteId = t.id)} class="text-neutral-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100"><Trash2 size={14} /></button>
+                {/if}
+              </div>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    </section>
+
+    {#if showActivityTypeModal}
+      <Modal title={editActivityTypeId ? 'Edit Activity Type' : 'New Activity Type'} onclose={() => (showActivityTypeModal = false)}>
+        <form onsubmit={handleActivityTypeSave} class="space-y-4">
+          <Input label="Name" bind:value={activityTypeForm.name} required />
+          <Input label="Icon (Lucide name)" bind:value={activityTypeForm.icon} placeholder="e.g. phone, coffee, video" />
+          <div>
+            <label class="mb-1.5 block text-sm font-medium text-neutral-300">Color</label>
+            <div class="flex items-center gap-3">
+              <input type="color" bind:value={activityTypeForm.color} class="h-9 w-9 cursor-pointer rounded border border-neutral-700 bg-transparent" />
+              <Input bind:value={activityTypeForm.color} />
+            </div>
+          </div>
+          <div class="flex justify-end gap-3">
+            <Button variant="ghost" onclick={() => (showActivityTypeModal = false)}>Cancel</Button>
+            <Button type="submit" loading={activityTypeSaving}>Save</Button>
           </div>
         </form>
       </Modal>
