@@ -38,7 +38,7 @@ def fake_redis(monkeypatch: pytest.MonkeyPatch) -> None:
             counters.setdefault(key, 0)
             return True
 
-    monkeypatch.setattr("clara.auth.api.redis_conn", FakeRedis())
+    monkeypatch.setattr("clara.redis.get_redis", lambda: FakeRedis())
 
 
 def _import_model_modules() -> None:

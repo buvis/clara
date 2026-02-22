@@ -44,7 +44,7 @@ from clara.auth.service import AuthService
 from clara.config import get_settings
 from clara.deps import CurrentUser, Db
 from clara.middleware import generate_csrf_token
-from clara.redis import redis_conn
+from clara.redis import get_redis
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -56,9 +56,9 @@ LOGIN_RATE_WINDOW = 60  # seconds
 def _check_login_rate(request: Request) -> None:
     ip = request.client.host if request.client else "unknown"
     key = f"rate:login:{ip}"
-    count = cast(int, redis_conn.incr(key))
+    count = cast(int, get_redis().incr(key))
     if count == 1:
-        redis_conn.expire(key, LOGIN_RATE_WINDOW)
+        get_redis().expire(key, LOGIN_RATE_WINDOW)
     if count > LOGIN_RATE_LIMIT:
         raise HTTPException(status_code=429, detail="Too many login attempts")
 
