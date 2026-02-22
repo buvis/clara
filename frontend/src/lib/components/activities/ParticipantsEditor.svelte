@@ -11,16 +11,12 @@
 
   let { participants = $bindable(), vaultId }: Props = $props();
 
-  $effect(() => {
-    lookup.loadContacts(vaultId);
-  });
-
   function addParticipant() {
-    participants.push({ contact_id: '', role: '' });
+    participants = [...participants, { contact_id: '', role: '' }];
   }
 
   function removeParticipant(index: number) {
-    participants.splice(index, 1);
+    participants = participants.filter((_, i) => i !== index);
   }
 </script>
 

@@ -9,7 +9,8 @@
   import Input from '$components/ui/Input.svelte';
   import Modal from '$components/ui/Modal.svelte';
   import Badge from '$components/ui/Badge.svelte';
-  import { ArrowLeft, Pencil, Trash2, Save, X, Plus } from 'lucide-svelte';
+  import ParticipantsEditor from '$components/activities/ParticipantsEditor.svelte';
+  import { ArrowLeft, Pencil, Trash2, Save, X } from 'lucide-svelte';
   import type { Activity } from '$lib/types/models';
 
   const vaultId = $derived(page.params.vaultId!);
@@ -108,22 +109,11 @@
     });
   }
 
-  function addParticipant() {
-    editParticipants = [...editParticipants, { contact_id: '', role: '' }];
-  }
-
-  function removeParticipant(index: number) {
-    editParticipants = editParticipants.filter((_, i) => i !== index);
-  }
-
   function getActivityTypeName(id: string | null | undefined) {
     if (!id) return null;
     return lookup.activityTypes.find(t => t.id === id)?.name;
   }
   
-  function getContactName(id: string) {
-    return lookup.contacts.find(c => c.id === id)?.name || 'Unknown Contact';
-  }
 </script>
 
 <svelte:head>
@@ -155,7 +145,7 @@
             bind:value={editForm.activity_type_id}
             class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
           >
-            <option value={null}>No Type</option>
+            <option value="">No Type</option>
             {#each lookup.activityTypes as type}
               <option value={type.id}>{type.name}</option>
             {/each}
@@ -179,31 +169,7 @@
 
         <div>
           <label class="mb-2 block text-sm font-medium text-neutral-300">Participants</label>
-          <div class="space-y-2">
-            {#each editParticipants as p, i}
-              <div class="flex gap-2">
-                <div class="relative flex-1">
-                  <select 
-                    bind:value={p.contact_id}
-                    class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                  >
-                    <option value="" disabled>Select Contact</option>
-                    {#each lookup.contacts as contact}
-                      <option value={contact.id}>{contact.name}</option>
-                    {/each}
-                  </select>
-                </div>
-                <input 
-                  type="text" 
-                  placeholder="Role" 
-                  bind:value={p.role}
-                  class="w-1/3 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-                />
-                <Button variant="ghost" size="sm" onclick={() => removeParticipant(i)}><Trash2 size={16} class="text-red-400" /></Button>
-              </div>
-            {/each}
-            <Button variant="secondary" size="sm" onclick={addParticipant}><Plus size={16} /> Add Participant</Button>
-          </div>
+          <ParticipantsEditor bind:participants={editParticipants} {vaultId} />
         </div>
       </div>
     {:else}
@@ -231,7 +197,7 @@
             <div class="space-y-2">
               {#each activity.participants as p}
                 <div class="flex items-center justify-between rounded-lg bg-neutral-800/50 px-3 py-2">
-                  <span class="font-medium text-white">{getContactName(p.contact_id)}</span>
+                  <span class="font-medium text-white">{lookup.getContactName(p.contact_id)}</span>
                   {#if p.role}
                     <span class="text-xs text-neutral-500">{p.role}</span>
                   {/if}

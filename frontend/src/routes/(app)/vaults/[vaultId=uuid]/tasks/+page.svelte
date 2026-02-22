@@ -63,7 +63,8 @@
       due_date: task.due_date ?? '',
       status: task.status,
       priority: task.priority,
-      contact_id: task.contact_id ?? ''
+      contact_id: task.contact_id ?? '',
+      activity_id: task.activity_id ?? ''
     };
     editingTask = task;
   }
@@ -130,7 +131,7 @@
             {/if}
           </button>
           <div class="min-w-0 flex-1">
-            <a href={`/vaults/${vaultId}/tasks/${item.id}`} class="truncate text-sm font-medium {item.status === 'done' ? 'text-neutral-400 line-through' : 'text-white'}">{item.title}</a>
+            <a href={`/vaults/${vaultId}/tasks/${item.id}`} class="block truncate text-sm font-medium {item.status === 'done' ? 'text-neutral-400 line-through' : 'text-white'}">{item.title}</a>
             {#if item.description}<p class="truncate text-xs text-neutral-500">{item.description}</p>{/if}
           </div>
           <div class="flex items-center gap-2">
@@ -212,6 +213,7 @@
           {/each}
         </select>
       </div>
+      <Input label="Activity ID" bind:value={editForm.activity_id} placeholder="Optional" />
       <div class="flex justify-end gap-3">
         <Button variant="ghost" onclick={() => (editingTask = null)}>Cancel</Button>
         <Button type="submit" loading={saving}>Save</Button>

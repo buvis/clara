@@ -6,6 +6,7 @@
   import Button from '$components/ui/Button.svelte';
   import Modal from '$components/ui/Modal.svelte';
   import Input from '$components/ui/Input.svelte';
+  import ParticipantsEditor from '$components/activities/ParticipantsEditor.svelte';
   import { Plus, CalendarDays, Pencil, Trash2 } from 'lucide-svelte';
   import type { Activity } from '$lib/types/models';
   import { lookup } from '$state/lookup.svelte';
@@ -58,7 +59,7 @@
       activity_type_id: activity.activity_type_id,
       title: activity.title,
       description: activity.description,
-      happened_at: new Date(activity.happened_at).toISOString().slice(0, 16),
+      happened_at: (() => { const d = new Date(activity.happened_at); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`; })(),
       location: activity.location
     };
     editParticipants = activity.participants?.map(p => ({
@@ -97,14 +98,6 @@
     }
   }
 
-  function addParticipant() {
-    editParticipants.push({ contact_id: '', role: '' });
-  }
-
-  function removeParticipant(index: number) {
-    editParticipants = editParticipants.filter((_, i) => i !== index);
-  }
-
   function formatDate(value: string): string {
     return new Date(value).toLocaleString(undefined, {
       month: 'short',
@@ -132,7 +125,7 @@
       {#snippet row(item: Activity)}
         <div class="flex items-start justify-between gap-3 px-4 py-3">
           <div class="min-w-0 flex-1">
-            <a href={`/vaults/${vaultId}/activities/${item.id}`} class="truncate text-sm font-medium text-white hover:underline">{item.title}</a>
+            <a href={`/vaults/${vaultId}/activities/${item.id}`} class="block truncate text-sm font-medium text-white hover:underline">{item.title}</a>
             {#if item.description}
               <p class="truncate text-xs text-neutral-500">{item.description}</p>
             {/if}
@@ -203,30 +196,7 @@
 
       <div>
         <label class="mb-1 block text-sm font-medium text-neutral-300">Participants</label>
-        <div class="space-y-2">
-          {#each editParticipants as participant, i}
-            <div class="flex gap-2">
-              <select bind:value={participant.contact_id} class="flex-1 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500">
-                <option value="">Select contact...</option>
-                {#each lookup.contacts as c}
-                  <option value={c.id}>{c.name}</option>
-                {/each}
-              </select>
-              <input
-                type="text"
-                bind:value={participant.role}
-                placeholder="Role (optional)"
-                class="flex-1 rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-              />
-              <button type="button" onclick={() => removeParticipant(i)} class="text-neutral-400 hover:text-red-400">
-                <Trash2 size={16} />
-              </button>
-            </div>
-          {/each}
-          <Button type="button" variant="ghost" size="sm" onclick={addParticipant}>
-            <Plus size={14} /> Add Participant
-          </Button>
-        </div>
+        <ParticipantsEditor bind:participants={editParticipants} {vaultId} />
       </div>
 
       <div class="flex justify-end gap-3">
