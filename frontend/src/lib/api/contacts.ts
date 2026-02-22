@@ -21,7 +21,9 @@ export interface ContactCreateInput {
   favorite?: boolean;
 }
 
-export type ContactUpdateInput = Partial<ContactCreateInput>;
+export type ContactUpdateInput = Partial<ContactCreateInput> & {
+  photo_file_id?: string | null;
+};
 
 export const contactsApi = {
   list(

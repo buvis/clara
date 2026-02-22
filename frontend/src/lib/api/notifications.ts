@@ -33,7 +33,7 @@ export const notificationsApi = {
   },
 
   delete(vaultId: string, notificationId: string) {
-    return api.delete(`/vaults/${vaultId}/notifications/${notificationId}`);
+    return api.del(`/vaults/${vaultId}/notifications/${notificationId}`);
   },
 
   clearRead(vaultId: string) {
