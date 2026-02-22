@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import func, select, update
@@ -23,6 +24,7 @@ async def list_notifications(
         .where(
             Notification.vault_id == vault_id,
             Notification.user_id == user.id,
+            Notification.deleted_at.is_(None),
         )
         .order_by(Notification.read.asc(), Notification.created_at.desc())
         .limit(100)
@@ -42,6 +44,7 @@ async def unread_count(
             Notification.vault_id == vault_id,
             Notification.user_id == user.id,
             Notification.read.is_(False),
+            Notification.deleted_at.is_(None),
         )
     )
     count = (await db.execute(stmt)).scalar_one()
@@ -61,6 +64,7 @@ async def mark_notification(
         Notification.id == notification_id,
         Notification.vault_id == vault_id,
         Notification.user_id == user.id,
+        Notification.deleted_at.is_(None),
     )
     notification = (await db.execute(stmt)).scalar_one_or_none()
     if notification is None:
@@ -80,8 +84,30 @@ async def mark_all_read(
             Notification.vault_id == vault_id,
             Notification.user_id == user.id,
             Notification.read.is_(False),
+            Notification.deleted_at.is_(None),
         )
         .values(read=True)
     )
     await db.execute(stmt)
+    await db.flush()
+
+
+@router.delete("/{notification_id}", status_code=204)
+async def delete_notification(
+    vault_id: uuid.UUID,
+    notification_id: uuid.UUID,
+    user: CurrentUser,
+    db: Db,
+    _access: VaultAccess,
+) -> None:
+    stmt = select(Notification).where(
+        Notification.id == notification_id,
+        Notification.vault_id == vault_id,
+        Notification.user_id == user.id,
+        Notification.deleted_at.is_(None),
+    )
+    notification = (await db.execute(stmt)).scalar_one_or_none()
+    if notification is None:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    notification.deleted_at = datetime.now(UTC)
     await db.flush()

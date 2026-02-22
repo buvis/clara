@@ -30,5 +30,9 @@ export const notificationsApi = {
 
   markAllRead(vaultId: string) {
     return api.post(`/vaults/${vaultId}/notifications/mark-all-read`);
+  },
+
+  delete(vaultId: string, notificationId: string) {
+    return api.delete(`/vaults/${vaultId}/notifications/${notificationId}`);
   }
 };

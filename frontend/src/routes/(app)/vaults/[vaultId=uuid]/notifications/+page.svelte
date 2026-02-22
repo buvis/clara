@@ -3,7 +3,7 @@
   import { notificationsApi } from '$api/notifications';
   import Spinner from '$components/ui/Spinner.svelte';
   import Button from '$components/ui/Button.svelte';
-  import { Bell, CheckCheck, Mail, MailOpen } from 'lucide-svelte';
+  import { Bell, CheckCheck, Mail, MailOpen, Trash2 } from 'lucide-svelte';
   import type { Notification } from '$lib/types/models';
 
   const vaultId = $derived(page.params.vaultId!);
@@ -25,6 +25,11 @@
       ? await notificationsApi.markUnread(vaultId, notif.id)
       : await notificationsApi.markRead(vaultId, notif.id);
     notifications = notifications.map((n) => (n.id === notif.id ? updated : n));
+  }
+
+  async function deleteNotification(notif: Notification) {
+    await notificationsApi.delete(vaultId, notif.id);
+    notifications = notifications.filter((n) => n.id !== notif.id);
   }
 
   async function markAllRead() {
@@ -102,6 +107,13 @@
             {:else}
               <MailOpen size={14} />
             {/if}
+          </button>
+          <button
+            onclick={() => deleteNotification(notif)}
+            class="shrink-0 rounded p-1 text-neutral-500 transition hover:bg-neutral-800 hover:text-red-400"
+            aria-label="Delete notification"
+          >
+            <Trash2 size={14} />
           </button>
         </div>
       {/each}

@@ -78,3 +78,41 @@ async def test_mark_all_read(
     )
     assert resp.status_code == 200
     assert resp.json()["count"] == 0
+
+
+async def test_delete_notification(
+    authenticated_client: AsyncClient,
+    vault: Vault,
+    user: User,
+    db_session: AsyncSession,
+):
+    await _create_notification(db_session, vault.id, user.id)
+
+    resp = await authenticated_client.get(
+        f"/api/v1/vaults/{vault.id}/notifications"
+    )
+    notif_id = resp.json()[0]["id"]
+
+    resp = await authenticated_client.delete(
+        f"/api/v1/vaults/{vault.id}/notifications/{notif_id}"
+    )
+    assert resp.status_code == 204
+
+    # deleted notification should not appear in list
+    resp = await authenticated_client.get(
+        f"/api/v1/vaults/{vault.id}/notifications"
+    )
+    ids = {n["id"] for n in resp.json()}
+    assert notif_id not in ids
+
+
+async def test_delete_notification_not_found(
+    authenticated_client: AsyncClient,
+    vault: Vault,
+):
+    import uuid
+
+    resp = await authenticated_client.delete(
+        f"/api/v1/vaults/{vault.id}/notifications/{uuid.uuid4()}"
+    )
+    assert resp.status_code == 404
