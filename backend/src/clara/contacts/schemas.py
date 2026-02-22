@@ -55,3 +55,4 @@ class ContactUpdate(BaseModel):
     pronouns: str | None = None
     notes_summary: str | None = None
     favorite: bool | None = None
+    photo_file_id: uuid.UUID | None = None

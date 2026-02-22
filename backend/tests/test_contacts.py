@@ -180,6 +180,23 @@ async def test_contacts_pagination(authenticated_client: AsyncClient, vault: Vau
     assert len(body["items"]) == 1
 
 
+async def test_update_contact_photo_file_id(
+    authenticated_client: AsyncClient, vault: Vault
+):
+    import uuid
+    from conftest import create_contact
+
+    contact_id = await create_contact(authenticated_client, str(vault.id))
+    fake_file_id = str(uuid.uuid4())
+
+    resp = await authenticated_client.patch(
+        f"/api/v1/vaults/{vault.id}/contacts/{contact_id}",
+        json={"photo_file_id": fake_file_id},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["photo_file_id"] == fake_file_id
+
+
 async def test_contacts_sorting_by_created_at(
     authenticated_client: AsyncClient, vault: Vault
 ):
