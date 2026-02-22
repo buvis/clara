@@ -16,7 +16,8 @@
   import Input from '$components/ui/Input.svelte';
   import Modal from '$components/ui/Modal.svelte';
   import Badge from '$components/ui/Badge.svelte';
-  import { Star, Pencil, Trash2, ArrowLeft } from 'lucide-svelte';
+  import { Star, Pencil, Trash2, ArrowLeft, Camera } from 'lucide-svelte';
+  import { filesApi } from '$api/files';
   import type { Contact, Activity, Task, Note, Gift, Debt } from '$lib/types/models';
   import type { PaginatedResponse } from '$lib/types/common';
 
@@ -30,6 +31,7 @@
   let editForm = $state<ContactUpdateInput>({});
   let saving = $state(false);
   let deleting = $state(false);
+  let photoUploading = $state(false);
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
@@ -118,6 +120,20 @@
     contact = await contactsApi.update(vaultId, contactId, { favorite: !contact.favorite });
   }
 
+  async function handlePhotoUpload(e: Event) {
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    photoUploading = true;
+    try {
+      const uploaded = await filesApi.upload(vaultId, file);
+      contact = await contactsApi.update(vaultId, contactId, { photo_file_id: uploaded.id });
+    } finally {
+      photoUploading = false;
+      (e.target as HTMLInputElement).value = '';
+    }
+  }
+
   function formatDate(d: string | null | undefined): string {
     if (!d) return '';
     return new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
@@ -138,9 +154,23 @@
         <ArrowLeft size={20} />
       </a>
 
-      <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-500/20 text-lg font-semibold text-brand-400">
-        {contact.first_name[0]}{contact.last_name?.[0] ?? ''}
-      </div>
+      <input id="photo-upload" type="file" accept="image/*" class="hidden" onchange={handlePhotoUpload} />
+      <button onclick={() => document.getElementById('photo-upload')?.click()} class="group relative" disabled={photoUploading}>
+        {#if contact.photo_file_id}
+          <img
+            src="/api/v1/vaults/{vaultId}/files/{contact.photo_file_id}/download"
+            alt="{contact.first_name}"
+            class="h-14 w-14 rounded-full object-cover"
+          />
+        {:else}
+          <div class="flex h-14 w-14 items-center justify-center rounded-full bg-brand-500/20 text-lg font-semibold text-brand-400">
+            {contact.first_name[0]}{contact.last_name?.[0] ?? ''}
+          </div>
+        {/if}
+        <div class="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition group-hover:opacity-100">
+          <Camera size={18} class="text-white" />
+        </div>
+      </button>
 
       <div class="min-w-0 flex-1">
         <div class="flex items-center gap-2">

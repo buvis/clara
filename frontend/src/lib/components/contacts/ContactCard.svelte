@@ -13,9 +13,17 @@
   {href}
   class="flex items-center gap-4 px-4 py-3 transition hover:bg-neutral-800/50"
 >
-  <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-500/20 text-sm font-semibold text-brand-400">
-    {initials}
-  </div>
+  {#if contact.photo_file_id}
+    <img
+      src="/api/v1/vaults/{contact.vault_id}/files/{contact.photo_file_id}/download"
+      alt="{contact.first_name}"
+      class="h-10 w-10 shrink-0 rounded-full object-cover"
+    />
+  {:else}
+    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-500/20 text-sm font-semibold text-brand-400">
+      {initials}
+    </div>
+  {/if}
 
   <div class="min-w-0 flex-1">
     <div class="flex items-center gap-2">
