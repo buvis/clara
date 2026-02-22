@@ -12,7 +12,7 @@ export interface NoteCreateInput {
 export type NoteUpdateInput = Partial<NoteCreateInput>;
 
 export const notesApi = {
-  list(vaultId: string, params?: { offset?: number; limit?: number }) {
+  list(vaultId: string, params?: { offset?: number; limit?: number; contact_id?: string; activity_id?: string }) {
     return api.get<PaginatedResponse<Note>>(`/vaults/${vaultId}/notes${qs(params ?? {})}`);
   },
 
