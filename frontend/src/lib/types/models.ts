@@ -302,6 +302,17 @@ export interface CustomField {
   updated_at: string;
 }
 
+export interface CustomFieldValue {
+  id: string;
+  vault_id: string;
+  definition_id: string;
+  entity_type: string;
+  entity_id: string;
+  value_json: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // --- Members ---
 
 export interface Member {
