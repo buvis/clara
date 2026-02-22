@@ -7,6 +7,7 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from clara.base.model import VaultScopedModel
+from clara.exceptions import NotFoundError
 
 ModelT = TypeVar("ModelT", bound=VaultScopedModel)
 
@@ -59,7 +60,7 @@ class BaseRepository[ModelT: VaultScopedModel]:
     async def update(self, id: uuid.UUID, **kwargs: Any) -> ModelT:
         obj = await self.get_by_id(id)
         if obj is None:
-            raise ValueError(f"{self.model.__name__} {id} not found")
+            raise NotFoundError(self.model.__name__, id)
         for key, value in kwargs.items():
             setattr(obj, key, value)
         await self.session.flush()
@@ -69,6 +70,6 @@ class BaseRepository[ModelT: VaultScopedModel]:
     async def soft_delete(self, id: uuid.UUID) -> None:
         obj = await self.get_by_id(id)
         if obj is None:
-            raise ValueError(f"{self.model.__name__} {id} not found")
+            raise NotFoundError(self.model.__name__, id)
         obj.deleted_at = datetime.now(UTC)
         await self.session.flush()

@@ -32,12 +32,10 @@ async def test_get_task_not_found(
 async def test_delete_contact_not_found(
     authenticated_client: AsyncClient, vault: Vault
 ):
-    # BUG: soft_delete raises ValueError instead of NotFoundError,
-    # so this propagates as an unhandled exception rather than 404.
-    with pytest.raises(ValueError, match="not found"):
-        await authenticated_client.delete(
-            f"/api/v1/vaults/{vault.id}/contacts/{uuid.uuid4()}"
-        )
+    resp = await authenticated_client.delete(
+        f"/api/v1/vaults/{vault.id}/contacts/{uuid.uuid4()}"
+    )
+    assert resp.status_code == 404
 
 
 async def test_patch_notification_not_found(
