@@ -29,6 +29,10 @@ class VaultCreate(BaseModel):
     name: str
 
 
+class VaultUpdate(BaseModel):
+    name: str | None = None
+
+
 @router.get("", response_model=list[VaultRead])
 async def list_vaults(user: CurrentUser, db: Db) -> list[VaultRead]:
     stmt = (
@@ -66,6 +70,22 @@ async def get_vault(vault_id: uuid.UUID, user: CurrentUser, db: Db) -> VaultRead
     vault = (await db.execute(stmt)).scalar_one_or_none()
     if vault is None:
         raise HTTPException(status_code=404, detail="Vault not found")
+    return VaultRead.model_validate(vault)
+
+
+@router.patch("/{vault_id}", response_model=VaultRead)
+async def update_vault(
+    vault_id: uuid.UUID,
+    body: VaultUpdate,
+    db: Db,
+    _: VaultMembership = require_role("owner"),
+) -> VaultRead:
+    vault = await db.get(Vault, vault_id)
+    if vault is None:
+        raise HTTPException(status_code=404, detail="Vault not found")
+    if body.name is not None:
+        vault.name = body.name
+    await db.flush()
     return VaultRead.model_validate(vault)
 
 
