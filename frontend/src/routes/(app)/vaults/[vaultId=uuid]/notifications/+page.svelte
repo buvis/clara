@@ -11,6 +11,7 @@
   let notifications = $state<Notification[]>([]);
   let loading = $state(true);
   let markingAll = $state(false);
+  let clearingRead = $state(false);
 
   $effect(() => {
     loading = true;
@@ -46,7 +47,18 @@
     return new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
+  async function clearRead() {
+    clearingRead = true;
+    try {
+      await notificationsApi.clearRead(vaultId);
+      notifications = notifications.filter((n) => !n.read);
+    } finally {
+      clearingRead = false;
+    }
+  }
+
   const unreadCount = $derived(notifications.filter((n) => !n.read).length);
+  const readCount = $derived(notifications.filter((n) => n.read).length);
 </script>
 
 <svelte:head>
@@ -61,11 +73,18 @@
         <p class="text-sm text-neutral-400">{unreadCount} unread</p>
       {/if}
     </div>
-    {#if unreadCount > 0}
-      <Button size="sm" variant="ghost" loading={markingAll} onclick={markAllRead}>
-        <CheckCheck size={16} class="mr-1.5" />Mark all read
-      </Button>
-    {/if}
+    <div class="flex items-center gap-2">
+      {#if unreadCount > 0}
+        <Button size="sm" variant="ghost" loading={markingAll} onclick={markAllRead}>
+          <CheckCheck size={16} class="mr-1.5" />Mark all read
+        </Button>
+      {/if}
+      {#if readCount > 0}
+        <Button size="sm" variant="ghost" loading={clearingRead} onclick={clearRead}>
+          <Trash2 size={16} class="mr-1.5" />Clear read
+        </Button>
+      {/if}
+    </div>
   </div>
 
   {#if loading}

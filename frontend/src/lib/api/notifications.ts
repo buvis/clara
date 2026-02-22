@@ -34,5 +34,9 @@ export const notificationsApi = {
 
   delete(vaultId: string, notificationId: string) {
     return api.delete(`/vaults/${vaultId}/notifications/${notificationId}`);
+  },
+
+  clearRead(vaultId: string) {
+    return api.del(`/vaults/${vaultId}/notifications/clear-read`);
   }
 };
