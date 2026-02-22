@@ -35,6 +35,10 @@ export const vaultsApi = {
     return api.del(`/vaults/${vaultId}`);
   },
 
+  rename(vaultId: string, name: string) {
+    return api.patch<Vault>(`/vaults/${vaultId}`, { name });
+  },
+
   // Settings
   getSettings(vaultId: string) {
     return api.get<VaultSettings>(`/vaults/${vaultId}/settings`);
