@@ -160,3 +160,26 @@ async def test_pat_readwrite_scope_allows_write(
         },
     )
     assert resp.status_code == 201
+
+
+async def test_register_rate_limited(client: AsyncClient):
+    """Register endpoint should return 429 after 3 attempts per IP."""
+    for i in range(3):
+        await client.post(
+            "/api/v1/auth/register",
+            json={
+                "email": f"ratelimit{i}@example.com",
+                "password": "Password123!",
+                "name": f"Rate Limit {i}",
+            },
+        )
+
+    resp = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "ratelimit-blocked@example.com",
+            "password": "Password123!",
+            "name": "Blocked",
+        },
+    )
+    assert resp.status_code == 429

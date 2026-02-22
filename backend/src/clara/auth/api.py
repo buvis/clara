@@ -52,6 +52,9 @@ logger = logging.getLogger(__name__)
 LOGIN_RATE_LIMIT = 5
 LOGIN_RATE_WINDOW = 60  # seconds
 
+REGISTER_RATE_LIMIT = 3
+REGISTER_RATE_WINDOW = 3600  # 1 hour
+
 
 def _check_login_rate(request: Request) -> None:
     ip = request.client.host if request.client else "unknown"
@@ -61,6 +64,16 @@ def _check_login_rate(request: Request) -> None:
         get_redis().expire(key, LOGIN_RATE_WINDOW)
     if count > LOGIN_RATE_LIMIT:
         raise HTTPException(status_code=429, detail="Too many login attempts")
+
+
+def _check_register_rate(request: Request) -> None:
+    ip = request.client.host if request.client else "unknown"
+    key = f"rate:register:{ip}"
+    count = cast(int, get_redis().incr(key))
+    if count == 1:
+        get_redis().expire(key, REGISTER_RATE_WINDOW)
+    if count > REGISTER_RATE_LIMIT:
+        raise HTTPException(status_code=429, detail="Too many registration attempts")
 
 
 def _set_auth_cookies(response: Response, access: str, refresh: str) -> None:
@@ -91,7 +104,10 @@ def _set_auth_cookies(response: Response, access: str, refresh: str) -> None:
 
 
 @router.post("/register", response_model=AuthResponse, status_code=201)
-async def register(body: RegisterRequest, db: Db, response: Response) -> AuthResponse:
+async def register(
+    body: RegisterRequest, db: Db, response: Response, request: Request
+) -> AuthResponse:
+    _check_register_rate(request)
     svc = AuthService(db)
     user, vault, access, refresh = await svc.register(body)
     _set_auth_cookies(response, access, refresh)
