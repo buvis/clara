@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     smtp_password: SecretStr | None = None
     email_from: str = "noreply@clara.local"
 
+    max_body_size: int = 1_048_576  # 1 MB for JSON
+    max_upload_size: int = 52_428_800  # 50 MB for files
+
     @property
     def async_database_url(self) -> str:
         return str(self.database_url).replace(

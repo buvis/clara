@@ -1,5 +1,6 @@
 import secrets
 
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
@@ -42,3 +43,29 @@ class CSRFMiddleware(BaseHTTPMiddleware):
 
 def generate_csrf_token() -> str:
     return secrets.token_urlsafe(32)
+
+
+class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
+    """Reject requests whose Content-Length exceeds configured limits."""
+
+    async def dispatch(self, request: Request, call_next):
+        from clara.config import get_settings
+
+        settings = get_settings()
+        content_length = request.headers.get("content-length")
+        if content_length is not None:
+            try:
+                length = int(content_length)
+            except ValueError:
+                return JSONResponse(
+                    status_code=400,
+                    content={"detail": "Invalid Content-Length header"},
+                )
+            is_upload = request.url.path.rstrip("/").endswith("/files")
+            limit = settings.max_upload_size if is_upload else settings.max_body_size
+            if length > limit:
+                return JSONResponse(
+                    status_code=413,
+                    content={"detail": "Request body too large"},
+                )
+        return await call_next(request)

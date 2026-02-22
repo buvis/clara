@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from clara.config import get_settings
 from clara.exceptions import ConflictError, ForbiddenError, NotFoundError
-from clara.middleware import CSRFMiddleware
+from clara.middleware import CSRFMiddleware, RequestSizeLimitMiddleware
 
 
 def create_app() -> FastAPI:
@@ -21,6 +21,7 @@ def create_app() -> FastAPI:
     instrumentator.instrument(app).expose(app, endpoint="/metrics")
 
     app.add_middleware(CSRFMiddleware)
+    app.add_middleware(RequestSizeLimitMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
