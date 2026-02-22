@@ -4,7 +4,8 @@
   import { vaultsApi } from '$api/vaults';
   import { importExportApi } from '$api/importExport';
   import { customizationApi } from '$api/customization';
-  import type { TemplateCreateInput, CustomFieldCreateInput } from '$api/customization';
+  import type { TemplateCreateInput, CustomFieldCreateInput, TemplatePageCreateInput, TemplateModuleCreateInput } from '$api/customization';
+  import type { TemplatePage, TemplateModule } from '$lib/types/models';
   import { relationshipTypesApi } from '$api/contacts';
   import { activitiesApi } from '$api/activities';
   import { tokensApi } from '$api/tokens';
@@ -15,7 +16,7 @@
   import Badge from '$components/ui/Badge.svelte';
   import Input from '$components/ui/Input.svelte';
   import Modal from '$components/ui/Modal.svelte';
-  import { Pencil, Trash2, Copy, Check } from 'lucide-svelte';
+  import { Pencil, Trash2, Copy, Check, ChevronRight, ChevronDown } from 'lucide-svelte';
 
   const vaultId = $derived(page.params.vaultId!);
 
@@ -51,6 +52,20 @@
   let templateForm = $state<TemplateCreateInput>({ name: '' });
   let templateSaving = $state(false);
   let templateDeleteId = $state<string | null>(null);
+  let expandedTemplateId = $state<string | null>(null);
+  let expandedPageId = $state<string | null>(null);
+  let showPageModal = $state(false);
+  let editPageId = $state<string | null>(null);
+  let pageForm = $state<{ slug: string; name: string; order: number }>({ slug: '', name: '', order: 0 });
+  let pageSaving = $state(false);
+  let showModuleModal = $state(false);
+  let editModuleId = $state<string | null>(null);
+  let moduleForm = $state<{ module_type: string; order: number; config_json: string }>({ module_type: '', order: 0, config_json: '' });
+  let moduleSaving = $state(false);
+  let pageDeleteId = $state<string | null>(null);
+  let moduleDeleteId = $state<string | null>(null);
+  let activeTemplateForPage = $state<string | null>(null);
+  let activePageForModule = $state<string | null>(null);
 
   let customFields = $state<CustomField[]>([]);
   let customFieldsLoading = $state(true);
@@ -333,6 +348,100 @@
     await customizationApi.deleteTemplate(vaultId, id);
     templates = templates.filter((t) => t.id !== id);
     templateDeleteId = null;
+  }
+
+  // --- Template Pages/Modules ---
+  async function toggleTemplate(templateId: string) {
+    if (expandedTemplateId === templateId) {
+      expandedTemplateId = null;
+      return;
+    }
+    const full = await customizationApi.getTemplate(vaultId, templateId);
+    templates = templates.map((t) => (t.id === full.id ? full : t));
+    expandedTemplateId = templateId;
+  }
+
+  function openPageCreate(templateId: string) {
+    activeTemplateForPage = templateId;
+    editPageId = null;
+    const t = templates.find((t) => t.id === templateId);
+    pageForm = { slug: '', name: '', order: (t?.pages?.length ?? 0) + 1 };
+    showPageModal = true;
+  }
+
+  function openPageEdit(p: TemplatePage) {
+    editPageId = p.id;
+    pageForm = { slug: p.slug, name: p.name, order: p.order };
+    showPageModal = true;
+  }
+
+  async function handlePageSave(e: Event) {
+    e.preventDefault();
+    pageSaving = true;
+    try {
+      if (editPageId) {
+        await customizationApi.updatePage(vaultId, editPageId, pageForm);
+      } else if (activeTemplateForPage) {
+        await customizationApi.addPage(vaultId, activeTemplateForPage, pageForm);
+      }
+      showPageModal = false;
+      if (expandedTemplateId) {
+        const full = await customizationApi.getTemplate(vaultId, expandedTemplateId);
+        templates = templates.map((t) => (t.id === full.id ? full : t));
+      }
+    } finally {
+      pageSaving = false;
+    }
+  }
+
+  async function handlePageDelete(pageId: string) {
+    await customizationApi.deletePage(vaultId, pageId);
+    pageDeleteId = null;
+    if (expandedTemplateId) {
+      const full = await customizationApi.getTemplate(vaultId, expandedTemplateId);
+      templates = templates.map((t) => (t.id === full.id ? full : t));
+    }
+  }
+
+  function openModuleCreate(pageId: string) {
+    activePageForModule = pageId;
+    editModuleId = null;
+    moduleForm = { module_type: '', order: 0, config_json: '' };
+    showModuleModal = true;
+  }
+
+  function openModuleEdit(m: TemplateModule) {
+    editModuleId = m.id;
+    moduleForm = { module_type: m.module_type, order: m.order, config_json: m.config_json ?? '' };
+    showModuleModal = true;
+  }
+
+  async function handleModuleSave(e: Event) {
+    e.preventDefault();
+    moduleSaving = true;
+    try {
+      if (editModuleId) {
+        await customizationApi.updateModule(vaultId, editModuleId, moduleForm);
+      } else if (activePageForModule) {
+        await customizationApi.addModule(vaultId, activePageForModule, moduleForm);
+      }
+      showModuleModal = false;
+      if (expandedTemplateId) {
+        const full = await customizationApi.getTemplate(vaultId, expandedTemplateId);
+        templates = templates.map((t) => (t.id === full.id ? full : t));
+      }
+    } finally {
+      moduleSaving = false;
+    }
+  }
+
+  async function handleModuleDelete(moduleId: string) {
+    await customizationApi.deleteModule(vaultId, moduleId);
+    moduleDeleteId = null;
+    if (expandedTemplateId) {
+      const full = await customizationApi.getTemplate(vaultId, expandedTemplateId);
+      templates = templates.map((t) => (t.id === full.id ? full : t));
+    }
   }
 
   // --- Custom Field CRUD ---
@@ -690,19 +799,102 @@
       {:else}
         <div class="space-y-2">
           {#each templates as t (t.id)}
-            <div class="group flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-2">
-              <p class="text-sm font-medium text-white">{t.name}</p>
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-neutral-500">{new Date(t.updated_at).toLocaleDateString()}</span>
-                {#if templateDeleteId === t.id}
-                  <span class="text-xs text-red-400">Delete?</span>
-                  <Button size="sm" variant="danger" onclick={() => handleTemplateDelete(t.id)}>Yes</Button>
-                  <Button size="sm" variant="ghost" onclick={() => (templateDeleteId = null)}>No</Button>
-                {:else}
-                  <button onclick={() => openTemplateEdit(t)} class="text-neutral-600 opacity-0 transition hover:text-white group-hover:opacity-100"><Pencil size={14} /></button>
-                  <button onclick={() => (templateDeleteId = t.id)} class="text-neutral-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100"><Trash2 size={14} /></button>
-                {/if}
+            <div class="rounded-lg border border-neutral-800 bg-neutral-950">
+              <div class="group flex items-center justify-between px-3 py-2">
+                <button type="button" class="flex items-center gap-2 text-sm font-medium text-white" onclick={() => toggleTemplate(t.id)}>
+                  {#if expandedTemplateId === t.id}
+                    <ChevronDown size={14} />
+                  {:else}
+                    <ChevronRight size={14} />
+                  {/if}
+                  {t.name}
+                </button>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-neutral-500">{new Date(t.updated_at).toLocaleDateString()}</span>
+                  {#if templateDeleteId === t.id}
+                    <span class="text-xs text-red-400">Delete?</span>
+                    <Button size="sm" variant="danger" onclick={() => handleTemplateDelete(t.id)}>Yes</Button>
+                    <Button size="sm" variant="ghost" onclick={() => (templateDeleteId = null)}>No</Button>
+                  {:else}
+                    <button onclick={() => openTemplateEdit(t)} class="text-neutral-600 opacity-0 transition hover:text-white group-hover:opacity-100"><Pencil size={14} /></button>
+                    <button onclick={() => (templateDeleteId = t.id)} class="text-neutral-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100"><Trash2 size={14} /></button>
+                  {/if}
+                </div>
               </div>
+
+              {#if expandedTemplateId === t.id}
+                <div class="border-t border-neutral-800 px-3 py-2">
+                  <div class="flex items-center justify-between mb-2">
+                    <p class="text-xs font-medium uppercase tracking-wide text-neutral-500">Pages</p>
+                    <Button size="sm" onclick={() => openPageCreate(t.id)}>Add page</Button>
+                  </div>
+                  {#if !t.pages?.length}
+                    <p class="text-xs text-neutral-500">No pages.</p>
+                  {:else}
+                    <div class="space-y-1">
+                      {#each t.pages as pg (pg.id)}
+                        <div class="rounded-lg border border-neutral-800 bg-neutral-900">
+                          <div class="group flex items-center justify-between px-3 py-1.5">
+                            <button type="button" class="flex items-center gap-2 text-sm text-neutral-200" onclick={() => (expandedPageId = expandedPageId === pg.id ? null : pg.id)}>
+                              {#if expandedPageId === pg.id}
+                                <ChevronDown size={12} />
+                              {:else}
+                                <ChevronRight size={12} />
+                              {/if}
+                              {pg.name}
+                              <span class="text-xs text-neutral-500">({pg.slug})</span>
+                              <span class="text-xs text-neutral-600">#{pg.order}</span>
+                            </button>
+                            <div class="flex items-center gap-2">
+                              {#if pageDeleteId === pg.id}
+                                <span class="text-xs text-red-400">Delete?</span>
+                                <Button size="sm" variant="danger" onclick={() => handlePageDelete(pg.id)}>Yes</Button>
+                                <Button size="sm" variant="ghost" onclick={() => (pageDeleteId = null)}>No</Button>
+                              {:else}
+                                <button onclick={() => openPageEdit(pg)} class="text-neutral-600 opacity-0 transition hover:text-white group-hover:opacity-100"><Pencil size={12} /></button>
+                                <button onclick={() => (pageDeleteId = pg.id)} class="text-neutral-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100"><Trash2 size={12} /></button>
+                              {/if}
+                            </div>
+                          </div>
+
+                          {#if expandedPageId === pg.id}
+                            <div class="border-t border-neutral-800 px-3 py-2">
+                              <div class="flex items-center justify-between mb-2">
+                                <p class="text-xs font-medium uppercase tracking-wide text-neutral-600">Modules</p>
+                                <Button size="sm" onclick={() => openModuleCreate(pg.id)}>Add module</Button>
+                              </div>
+                              {#if !pg.modules?.length}
+                                <p class="text-xs text-neutral-500">No modules.</p>
+                              {:else}
+                                <div class="space-y-1">
+                                  {#each pg.modules as mod (mod.id)}
+                                    <div class="group flex items-center justify-between rounded-lg border border-neutral-800 bg-neutral-950 px-3 py-1.5">
+                                      <div class="flex items-center gap-2 text-sm text-neutral-300">
+                                        <span>{mod.module_type}</span>
+                                        <span class="text-xs text-neutral-600">#{mod.order}</span>
+                                      </div>
+                                      <div class="flex items-center gap-2">
+                                        {#if moduleDeleteId === mod.id}
+                                          <span class="text-xs text-red-400">Delete?</span>
+                                          <Button size="sm" variant="danger" onclick={() => handleModuleDelete(mod.id)}>Yes</Button>
+                                          <Button size="sm" variant="ghost" onclick={() => (moduleDeleteId = null)}>No</Button>
+                                        {:else}
+                                          <button onclick={() => openModuleEdit(mod)} class="text-neutral-600 opacity-0 transition hover:text-white group-hover:opacity-100"><Pencil size={12} /></button>
+                                          <button onclick={() => (moduleDeleteId = mod.id)} class="text-neutral-600 opacity-0 transition hover:text-red-400 group-hover:opacity-100"><Trash2 size={12} /></button>
+                                        {/if}
+                                      </div>
+                                    </div>
+                                  {/each}
+                                </div>
+                              {/if}
+                            </div>
+                          {/if}
+                        </div>
+                      {/each}
+                    </div>
+                  {/if}
+                </div>
+              {/if}
             </div>
           {/each}
         </div>
@@ -717,6 +909,34 @@
           <div class="flex justify-end gap-3">
             <Button variant="ghost" onclick={() => (showTemplateModal = false)}>Cancel</Button>
             <Button type="submit" loading={templateSaving}>Save</Button>
+          </div>
+        </form>
+      </Modal>
+    {/if}
+
+    {#if showPageModal}
+      <Modal title={editPageId ? 'Edit Page' : 'New Page'} onclose={() => (showPageModal = false)}>
+        <form onsubmit={handlePageSave} class="space-y-4">
+          <Input label="Name" bind:value={pageForm.name} required />
+          <Input label="Slug" bind:value={pageForm.slug} required />
+          <Input label="Order" type="number" bind:value={pageForm.order} />
+          <div class="flex justify-end gap-3">
+            <Button variant="ghost" onclick={() => (showPageModal = false)}>Cancel</Button>
+            <Button type="submit" loading={pageSaving}>Save</Button>
+          </div>
+        </form>
+      </Modal>
+    {/if}
+
+    {#if showModuleModal}
+      <Modal title={editModuleId ? 'Edit Module' : 'New Module'} onclose={() => (showModuleModal = false)}>
+        <form onsubmit={handleModuleSave} class="space-y-4">
+          <Input label="Module type" bind:value={moduleForm.module_type} required />
+          <Input label="Order" type="number" bind:value={moduleForm.order} />
+          <Input label="Config (JSON)" bind:value={moduleForm.config_json} />
+          <div class="flex justify-end gap-3">
+            <Button variant="ghost" onclick={() => (showModuleModal = false)}>Cancel</Button>
+            <Button type="submit" loading={moduleSaving}>Save</Button>
           </div>
         </form>
       </Modal>
