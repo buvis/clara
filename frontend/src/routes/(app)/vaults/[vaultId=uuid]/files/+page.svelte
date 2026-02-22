@@ -10,6 +10,8 @@
 
   let listKey = $state(0);
   let uploading = $state(false);
+  let editingId = $state<string | null>(null);
+  let editFilename = $state('');
 
   async function loadFiles(params: { offset: number; limit: number; search: string; filter: string | null }) {
     return filesApi.list(vaultId, {
@@ -31,6 +33,22 @@
       uploading = false;
       input.value = '';
     }
+  }
+
+  function startRename(file: FileRecord) {
+    editingId = file.id;
+    editFilename = file.filename;
+  }
+
+  async function handleRename(fileId: string) {
+    if (!editFilename.trim()) return;
+    await filesApi.rename(vaultId, fileId, editFilename.trim());
+    editingId = null;
+    listKey++;
+  }
+
+  function cancelRename() {
+    editingId = null;
   }
 
   async function handleDelete(file: FileRecord) {
@@ -72,7 +90,23 @@
       {#snippet row(item: FileRecord)}
         <div class="flex items-center gap-3 px-4 py-3">
           <div class="min-w-0 flex-1">
-            <p class="truncate text-sm font-medium text-white">{item.filename}</p>
+            {#if editingId === item.id}
+              <input
+                type="text"
+                bind:value={editFilename}
+                onkeydown={(e) => {
+                  if (e.key === 'Enter') handleRename(item.id);
+                  if (e.key === 'Escape') cancelRename();
+                }}
+                onblur={() => cancelRename()}
+                class="w-full rounded border border-brand-500 bg-neutral-800 px-2 py-0.5 text-sm text-white outline-none"
+                autofocus
+              />
+            {:else}
+              <button onclick={() => startRename(item)} class="truncate text-sm font-medium text-white hover:text-brand-400 text-left">
+                {item.filename}
+              </button>
+            {/if}
             <p class="truncate text-xs text-neutral-500">{item.mime_type}</p>
           </div>
           <div class="hidden text-xs text-neutral-500 sm:block">{formatSize(item.size_bytes)}</div>

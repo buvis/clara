@@ -37,6 +37,10 @@ export const filesApi = {
     window.open(`/api/v1/vaults/${vaultId}/files/${fileId}/download`, '_blank');
   },
 
+  rename(vaultId: string, fileId: string, filename: string) {
+    return api.patch<FileRecord>(`/vaults/${vaultId}/files/${fileId}`, { filename });
+  },
+
   del(vaultId: string, fileId: string) {
     return api.del(`/vaults/${vaultId}/files/${fileId}`);
   }

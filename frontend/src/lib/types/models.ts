@@ -58,6 +58,8 @@ export interface Contact {
   pronouns: string | null;
   notes_summary: string | null;
   favorite: boolean;
+  photo_file_id: string | null;
+  template_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -82,6 +84,7 @@ export interface ContactUpdate {
   pronouns?: string | null;
   notes_summary?: string | null;
   favorite?: boolean;
+  photo_file_id?: string | null;
 }
 
 // --- Activities ---
@@ -225,6 +228,7 @@ export interface FileRecord {
   mime_type: string;
   size_bytes: number;
   created_at: string;
+  updated_at: string;
 }
 
 // --- Notifications ---
