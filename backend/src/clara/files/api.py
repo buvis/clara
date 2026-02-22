@@ -7,7 +7,7 @@ from fastapi.responses import Response
 from clara.base.schema import PaginatedResponse, PaginationMeta
 from clara.deps import CurrentUser, Db, VaultAccess
 from clara.files.repository import FileLinkRepository, FileRepository
-from clara.files.schemas import FileLinkCreate, FileLinkRead, FileRead
+from clara.files.schemas import FileLinkCreate, FileLinkRead, FileRead, FileUpdate
 from clara.files.service import FileService
 from clara.files.storage import LocalStorage
 from clara.pagination import PaginationParams
@@ -75,6 +75,15 @@ async def download_file(file_id: uuid.UUID, svc: FileSvc) -> Response:
 @router.delete("/{file_id}", status_code=204)
 async def delete_file(file_id: uuid.UUID, svc: FileSvc) -> None:
     await svc.delete_file(file_id)
+
+
+@router.patch("/{file_id}", response_model=FileRead)
+async def update_file(
+    file_id: uuid.UUID, body: FileUpdate, svc: FileSvc
+) -> FileRead:
+    return FileRead.model_validate(
+        await svc.update_file(file_id, **body.model_dump(exclude_none=True))
+    )
 
 
 @router.post("/links", response_model=FileLinkRead, status_code=201)

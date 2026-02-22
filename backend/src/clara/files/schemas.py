@@ -27,6 +27,10 @@ class FileLinkRead(BaseModel):
     updated_at: datetime
 
 
+class FileUpdate(BaseModel):
+    filename: str | None = None
+
+
 class FileLinkCreate(BaseModel):
     file_id: uuid.UUID
     target_type: str

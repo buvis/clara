@@ -33,3 +33,19 @@ async def test_file_upload_and_crud(authenticated_client: AsyncClient, vault: Va
         f"/api/v1/vaults/{vault.id}/files/{file_id}"
     )
     assert resp.status_code == 204
+
+
+async def test_file_rename(authenticated_client: AsyncClient, vault: Vault):
+    resp = await authenticated_client.post(
+        f"/api/v1/vaults/{vault.id}/files",
+        files={"file": ("original.txt", b"data", "text/plain")},
+    )
+    assert resp.status_code == 201
+    file_id = resp.json()["id"]
+
+    resp = await authenticated_client.patch(
+        f"/api/v1/vaults/{vault.id}/files/{file_id}",
+        json={"filename": "renamed.txt"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["filename"] == "renamed.txt"

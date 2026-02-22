@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import Sequence
+from typing import Any
 
 from fastapi import UploadFile
 
@@ -51,6 +52,9 @@ class FileService:
         file = await self.get_file(file_id)
         data = await self.storage.read(file.storage_key)
         return data, file
+
+    async def update_file(self, file_id: uuid.UUID, **kwargs: Any) -> File:
+        return await self.repo.update(file_id, **kwargs)
 
     async def delete_file(self, file_id: uuid.UUID) -> None:
         file = await self.get_file(file_id)
