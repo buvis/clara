@@ -46,3 +46,27 @@ async def test_task_crud(authenticated_client: AsyncClient, vault: Vault):
     resp = await authenticated_client.get(f"/api/v1/vaults/{vault.id}/tasks")
     ids = {item["id"] for item in resp.json()["items"]}
     assert task_id not in ids
+
+
+async def test_tasks_pagination(authenticated_client: AsyncClient, vault: Vault):
+    for i in range(3):
+        resp = await authenticated_client.post(
+            f"/api/v1/vaults/{vault.id}/tasks",
+            json={"title": f"Task {i}"},
+        )
+        assert resp.status_code == 201
+
+    resp = await authenticated_client.get(
+        f"/api/v1/vaults/{vault.id}/tasks?offset=0&limit=2"
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["meta"]["total"] == 3
+    assert len(body["items"]) == 2
+
+    resp = await authenticated_client.get(
+        f"/api/v1/vaults/{vault.id}/tasks?offset=2&limit=2"
+    )
+    body = resp.json()
+    assert body["meta"]["total"] == 3
+    assert len(body["items"]) == 1

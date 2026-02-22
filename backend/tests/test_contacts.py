@@ -150,3 +150,49 @@ async def test_filter_by_favorites(authenticated_client: AsyncClient, vault: Vau
     assert body["meta"]["total"] == 1
     assert len(body["items"]) == 1
     assert body["items"][0]["favorite"] is True
+
+
+async def test_contacts_pagination(authenticated_client: AsyncClient, vault: Vault):
+    # create 3 contacts
+    for name in ["Alice", "Bob", "Carol"]:
+        resp = await authenticated_client.post(
+            f"/api/v1/vaults/{vault.id}/contacts",
+            json={"first_name": name},
+        )
+        assert resp.status_code == 201
+
+    # page 1: limit=2
+    resp = await authenticated_client.get(
+        f"/api/v1/vaults/{vault.id}/contacts?offset=0&limit=2"
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["meta"]["total"] == 3
+    assert len(body["items"]) == 2
+
+    # page 2: offset=2, limit=2
+    resp = await authenticated_client.get(
+        f"/api/v1/vaults/{vault.id}/contacts?offset=2&limit=2"
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["meta"]["total"] == 3
+    assert len(body["items"]) == 1
+
+
+async def test_contacts_sorting_by_created_at(
+    authenticated_client: AsyncClient, vault: Vault
+):
+    """Contacts should be returned newest-first (created_at desc)."""
+    for name in ["First", "Second", "Third"]:
+        await authenticated_client.post(
+            f"/api/v1/vaults/{vault.id}/contacts",
+            json={"first_name": name},
+        )
+
+    resp = await authenticated_client.get(
+        f"/api/v1/vaults/{vault.id}/contacts?offset=0&limit=10"
+    )
+    items = resp.json()["items"]
+    dates = [item["created_at"] for item in items]
+    assert dates == sorted(dates, reverse=True)

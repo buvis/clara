@@ -80,3 +80,25 @@ async def test_activity_crud(authenticated_client: AsyncClient, vault: Vault):
     )
     ids = {item["id"] for item in resp.json()["items"]}
     assert activity_id not in ids
+
+
+async def test_activities_pagination(
+    authenticated_client: AsyncClient, vault: Vault
+):
+    for i in range(3):
+        resp = await authenticated_client.post(
+            f"/api/v1/vaults/{vault.id}/activities",
+            json={
+                "title": f"Activity {i}",
+                "happened_at": "2025-01-01T12:00:00Z",
+            },
+        )
+        assert resp.status_code == 201
+
+    resp = await authenticated_client.get(
+        f"/api/v1/vaults/{vault.id}/activities?offset=0&limit=2"
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["meta"]["total"] == 3
+    assert len(body["items"]) == 2
