@@ -13,7 +13,11 @@
   let verifying = $state(false);
 
   function handleAuthRedirect(vaultId: string | null) {
-    if (vaultId) {
+    const saved = sessionStorage.getItem('clara_redirect');
+    sessionStorage.removeItem('clara_redirect');
+    if (saved && saved.startsWith('/')) {
+      goto(saved);
+    } else if (vaultId) {
       goto(`/vaults/${vaultId}/dashboard`);
     } else {
       goto('/');

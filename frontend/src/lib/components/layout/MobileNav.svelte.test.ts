@@ -4,7 +4,8 @@ import MobileNav from './MobileNav.svelte';
 
 vi.mock('$state/vault.svelte', () => ({
   vaultState: {
-    currentId: 'v1'
+    currentId: 'v1',
+    featureFlags: { debts: true, gifts: true, pets: true, journal: true }
   }
 }));
 

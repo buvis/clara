@@ -1,9 +1,10 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: postgres
   namespace: clara
 spec:
+  serviceName: postgres
   replicas: 1
   selector:
     matchLabels:
@@ -48,21 +49,14 @@ spec:
           volumeMounts:
             - name: pgdata
               mountPath: /var/lib/postgresql/data
-      volumes:
-        - name: pgdata
-          persistentVolumeClaim:
-            claimName: pgdata
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: pgdata
-  namespace: clara
-spec:
-  accessModes: [ReadWriteOnce]
-  resources:
-    requests:
-      storage: 5Gi
+  volumeClaimTemplates:
+    - metadata:
+        name: pgdata
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 5Gi
 ---
 apiVersion: v1
 kind: Service
@@ -74,3 +68,52 @@ spec:
     app: postgres
   ports:
     - port: 5432
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pg-backup
+  namespace: clara
+spec:
+  schedule: "0 3 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: pg-backup
+              image: postgres:17
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  pg_dump -h postgres -U clara clara | gzip > /backups/clara-$(date +%Y%m%d-%H%M%S).sql.gz
+                  # keep last 7 days
+                  find /backups -name '*.sql.gz' -mtime +7 -delete
+              env:
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: clara-secret
+                      key: DB_PASSWORD
+              volumeMounts:
+                - name: backups
+                  mountPath: /backups
+          volumes:
+            - name: backups
+              persistentVolumeClaim:
+                claimName: pg-backups
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pg-backups
+  namespace: clara
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi

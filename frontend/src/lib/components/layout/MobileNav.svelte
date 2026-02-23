@@ -1,15 +1,22 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { vaultState } from '$state/vault.svelte';
+  import type { FeatureFlags } from '$state/vault.svelte';
   import { Home, Users, CheckSquare, BookOpen, Bell } from 'lucide-svelte';
 
-  const items = [
+  type NavItem = { label: string; icon: typeof Home; path: string; flag?: keyof FeatureFlags };
+
+  const allItems: NavItem[] = [
     { label: 'Home', icon: Home, path: 'dashboard' },
     { label: 'Contacts', icon: Users, path: 'contacts' },
     { label: 'Tasks', icon: CheckSquare, path: 'tasks' },
-    { label: 'Journal', icon: BookOpen, path: 'journal' },
+    { label: 'Journal', icon: BookOpen, path: 'journal', flag: 'journal' },
     { label: 'Reminders', icon: Bell, path: 'reminders' }
   ];
+
+  let items = $derived(
+    allItems.filter((item) => !item.flag || vaultState.featureFlags[item.flag])
+  );
 
   let basePath = $derived(
     vaultState.currentId ? `/vaults/${vaultState.currentId}` : ''
