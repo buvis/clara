@@ -1,9 +1,11 @@
+import asyncio
 import base64
 import io
 import logging
 import secrets
 import string
 import uuid
+from datetime import UTC, datetime
 from typing import cast
 
 import pyotp
@@ -33,6 +35,7 @@ from clara.auth.security import (
     create_refresh_token,
     create_reset_token,
     decode_2fa_temp_token,
+    decode_access_token,
     decode_refresh_token,
     decode_reset_token,
     decrypt_totp_secret,
@@ -44,7 +47,7 @@ from clara.auth.service import AuthService
 from clara.config import get_settings
 from clara.deps import CurrentUser, Db
 from clara.middleware import generate_csrf_token
-from clara.redis import get_redis
+from clara.redis import blacklist_token, get_redis
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -56,22 +59,24 @@ REGISTER_RATE_LIMIT = 3
 REGISTER_RATE_WINDOW = 3600  # 1 hour
 
 
-def _check_login_rate(request: Request) -> None:
+async def _check_login_rate(request: Request) -> None:
     ip = request.client.host if request.client else "unknown"
     key = f"rate:login:{ip}"
-    count = cast(int, get_redis().incr(key))
+    r = get_redis()
+    count = cast(int, await asyncio.to_thread(r.incr, key))
     if count == 1:
-        get_redis().expire(key, LOGIN_RATE_WINDOW)
+        await asyncio.to_thread(r.expire, key, LOGIN_RATE_WINDOW)
     if count > LOGIN_RATE_LIMIT:
         raise HTTPException(status_code=429, detail="Too many login attempts")
 
 
-def _check_register_rate(request: Request) -> None:
+async def _check_register_rate(request: Request) -> None:
     ip = request.client.host if request.client else "unknown"
     key = f"rate:register:{ip}"
-    count = cast(int, get_redis().incr(key))
+    r = get_redis()
+    count = cast(int, await asyncio.to_thread(r.incr, key))
     if count == 1:
-        get_redis().expire(key, REGISTER_RATE_WINDOW)
+        await asyncio.to_thread(r.expire, key, REGISTER_RATE_WINDOW)
     if count > REGISTER_RATE_LIMIT:
         raise HTTPException(status_code=429, detail="Too many registration attempts")
 
@@ -107,7 +112,7 @@ def _set_auth_cookies(response: Response, access: str, refresh: str) -> None:
 async def register(
     body: RegisterRequest, db: Db, response: Response, request: Request
 ) -> AuthResponse:
-    _check_register_rate(request)
+    await _check_register_rate(request)
     svc = AuthService(db)
     user, vault, access, refresh = await svc.register(body)
     _set_auth_cookies(response, access, refresh)
@@ -125,7 +130,7 @@ async def login(
     response: Response,
     request: Request,
 ) -> AuthResponse | TwoFactorChallengeResponse:
-    _check_login_rate(request)
+    await _check_login_rate(request)
     svc = AuthService(db)
     result = await svc.login(body)
     if result.requires_2fa:
@@ -206,7 +211,14 @@ async def refresh(request: Request, db: Db, response: Response) -> AuthResponse:
 
 
 @router.post("/logout")
-async def logout(response: Response) -> dict[str, bool]:
+async def logout(request: Request, response: Response) -> dict[str, bool]:
+    access_token = request.cookies.get("access_token")
+    if access_token:
+        payload = decode_access_token(access_token)
+        if payload and payload.get("jti"):
+            exp = payload.get("exp", 0)
+            ttl = int(exp - datetime.now(UTC).timestamp())
+            blacklist_token(payload["jti"], ttl)
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
     return {"ok": True}

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import uuid as uuid_mod
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -43,7 +44,12 @@ def create_access_token(
         expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
     )
     return jwt.encode(
-        {"sub": subject, "exp": expire, "type": "access"},
+        {
+            "sub": subject,
+            "exp": expire,
+            "type": "access",
+            "jti": str(uuid_mod.uuid4()),
+        },
         settings.secret_key.get_secret_value(),
         algorithm=settings.jwt_algorithm,
     )

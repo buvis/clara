@@ -6,19 +6,30 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from clara.config import get_settings
-from clara.exceptions import ConflictError, ForbiddenError, NotFoundError
+from clara.exceptions import (
+    ConflictError,
+    ForbiddenError,
+    InvalidCredentialsError,
+    NotFoundError,
+)
 from clara.middleware import CSRFMiddleware, RequestSizeLimitMiddleware
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title="CLARA", version="0.1.0")
+    app = FastAPI(
+        title="CLARA",
+        version="0.1.0",
+        docs_url="/docs" if settings.debug else None,
+        redoc_url="/redoc" if settings.debug else None,
+    )
 
     from clara.logging import setup_logging
     setup_logging(debug=settings.debug)
 
-    from clara.metrics import instrumentator
-    instrumentator.instrument(app).expose(app, endpoint="/metrics")
+    if settings.debug:
+        from clara.metrics import instrumentator
+        instrumentator.instrument(app).expose(app, endpoint="/metrics")
 
     app.add_middleware(CSRFMiddleware)
     app.add_middleware(RequestSizeLimitMiddleware)
@@ -41,6 +52,12 @@ def create_app() -> FastAPI:
     @app.exception_handler(ConflictError)
     async def conflict_handler(request: Request, exc: ConflictError) -> JSONResponse:
         return JSONResponse(status_code=409, content={"detail": exc.detail})
+
+    @app.exception_handler(InvalidCredentialsError)
+    async def invalid_credentials_handler(
+        request: Request, exc: InvalidCredentialsError
+    ) -> JSONResponse:
+        return JSONResponse(status_code=401, content={"detail": "Invalid credentials"})
 
     import time
 

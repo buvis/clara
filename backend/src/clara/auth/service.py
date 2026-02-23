@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +13,7 @@ from clara.auth.security import (
     needs_rehash,
     verify_password,
 )
-from clara.exceptions import ConflictError
+from clara.exceptions import ConflictError, InvalidCredentialsError
 
 
 @dataclass(frozen=True)
@@ -79,7 +78,7 @@ class AuthService:
         if user is None or not verify_password(
             data.password, user.hashed_password
         ):
-            raise HTTPException(status_code=401, detail="Invalid credentials")
+            raise InvalidCredentialsError("Invalid credentials")
 
         # Upgrade legacy bcrypt hash to argon2
         if needs_rehash(user.hashed_password):

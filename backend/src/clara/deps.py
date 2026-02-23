@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from clara.auth.models import PersonalAccessToken, User, VaultMembership
 from clara.auth.security import decode_access_token, verify_password
 from clara.database import get_session
+from clara.redis import is_token_blacklisted
 
 Db = Annotated[AsyncSession, Depends(get_session)]
 
@@ -64,6 +65,11 @@ async def get_current_user(
                 detail="Invalid or expired token",
             )
         user, pat = result
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Account deactivated",
+            )
         scopes = json.loads(pat.scopes)
         if request.method in _WRITE_METHODS and "write" not in scopes:
             raise HTTPException(
@@ -84,11 +90,22 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
         )
+    jti = payload.get("jti")
+    if jti and is_token_blacklisted(jti):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
+        )
     jwt_user = await session.get(User, uuid.UUID(payload["sub"]))
     if jwt_user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
+        )
+    if not jwt_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Account deactivated",
         )
     return jwt_user
 

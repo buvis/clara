@@ -11,5 +11,9 @@ COPY alembic/ alembic/
 COPY alembic.ini .
 COPY entrypoint.sh .
 
+RUN adduser --disabled-password --no-create-home appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE 8000
 CMD ["./entrypoint.sh"]
