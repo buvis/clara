@@ -6,6 +6,8 @@
   import Button from '$components/ui/Button.svelte';
   import Modal from '$components/ui/Modal.svelte';
   import Input from '$components/ui/Input.svelte';
+  import Textarea from '$components/ui/Textarea.svelte';
+  import Select from '$components/ui/Select.svelte';
   import ParticipantsEditor from '$components/activities/ParticipantsEditor.svelte';
   import { Plus, CalendarDays, Pencil, Trash2 } from 'lucide-svelte';
   import type { Activity } from '$lib/types/models';
@@ -161,14 +163,7 @@
   <Modal title="New Activity" onclose={() => (showCreate = false)}>
     <form onsubmit={handleCreate} class="space-y-4">
       <Input label="Title" bind:value={createForm.title} required />
-      <div>
-        <label class="mb-1 block text-sm font-medium text-neutral-300">Description</label>
-        <textarea
-          bind:value={createForm.description}
-          rows="3"
-          class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-        ></textarea>
-      </div>
+      <Textarea label="Description" bind:value={createForm.description} />
       <Input label="Date and time" type="datetime-local" bind:value={createForm.happened_at} required />
       <Input label="Location" bind:value={createForm.location} />
       {#if formError}<p class="text-sm text-red-400">{formError}</p>{/if}
@@ -183,24 +178,14 @@
 {#if editingActivity}
   <Modal title="Edit Activity" onclose={() => (editingActivity = null)}>
     <form onsubmit={handleEdit} class="space-y-4">
-      <div>
-        <label class="mb-1 block text-sm font-medium text-neutral-300">Type</label>
-        <select bind:value={editForm.activity_type_id} class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500">
-          <option value="">No Type</option>
-          {#each lookup.activityTypes as t}
-            <option value={t.id}>{t.name}</option>
-          {/each}
-        </select>
-      </div>
+      <Select label="Type" bind:value={editForm.activity_type_id}>
+        <option value="">No Type</option>
+        {#each lookup.activityTypes as t}
+          <option value={t.id}>{t.name}</option>
+        {/each}
+      </Select>
       <Input label="Title" bind:value={editForm.title} required />
-      <div>
-        <label class="mb-1 block text-sm font-medium text-neutral-300">Description</label>
-        <textarea
-          bind:value={editForm.description}
-          rows="3"
-          class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-        ></textarea>
-      </div>
+      <Textarea label="Description" bind:value={editForm.description} />
       <Input label="Date and time" type="datetime-local" bind:value={editForm.happened_at} required />
       <Input label="Location" bind:value={editForm.location} />
 

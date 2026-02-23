@@ -6,6 +6,8 @@
   import Badge from '$components/ui/Badge.svelte';
   import Modal from '$components/ui/Modal.svelte';
   import Input from '$components/ui/Input.svelte';
+  import Textarea from '$components/ui/Textarea.svelte';
+  import Select from '$components/ui/Select.svelte';
   import { Plus, CheckCircle, Circle, CheckSquare, Pencil, Trash2 } from 'lucide-svelte';
   import type { Task } from '$lib/types/models';
   import { lookup } from '$state/lookup.svelte';
@@ -164,20 +166,14 @@
   <Modal title="New Task" onclose={() => (showCreate = false)}>
     <form onsubmit={handleCreate} class="space-y-4">
       <Input label="Title" bind:value={createForm.title} required />
-      <div>
-        <label class="mb-1 block text-sm font-medium text-neutral-300">Description</label>
-        <textarea bind:value={createForm.description} rows="3" class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"></textarea>
-      </div>
+      <Textarea label="Description" bind:value={createForm.description} />
       <Input label="Due date" type="date" bind:value={createForm.due_date} />
-      <div>
-        <label class="mb-1 block text-sm font-medium text-neutral-300">Priority</label>
-        <select bind:value={createForm.priority} class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500">
-          <option value={0}>None</option>
-          <option value={1}>Low</option>
-          <option value={2}>Medium</option>
-          <option value={3}>High</option>
-        </select>
-      </div>
+      <Select label="Priority" bind:value={createForm.priority}>
+        <option value={0}>None</option>
+        <option value={1}>Low</option>
+        <option value={2}>Medium</option>
+        <option value={3}>High</option>
+      </Select>
       {#if formError}<p class="text-sm text-red-400">{formError}</p>{/if}
       <div class="flex justify-end gap-3">
         <Button variant="ghost" onclick={() => (showCreate = false)}>Cancel</Button>
@@ -191,37 +187,25 @@
   <Modal title="Edit Task" onclose={() => (editingTask = null)}>
     <form onsubmit={handleEdit} class="space-y-4">
       <Input label="Title" bind:value={editForm.title} required />
-      <div>
-        <label class="mb-1 block text-sm font-medium text-neutral-300">Description</label>
-        <textarea bind:value={editForm.description} rows="3" class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"></textarea>
-      </div>
+      <Textarea label="Description" bind:value={editForm.description} />
       <Input label="Due date" type="date" bind:value={editForm.due_date} />
-      <div>
-        <label class="mb-1 block text-sm font-medium text-neutral-300">Status</label>
-        <select bind:value={editForm.status} class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500">
-          <option value="pending">Pending</option>
-          <option value="in_progress">In Progress</option>
-          <option value="done">Done</option>
-        </select>
-      </div>
-      <div>
-        <label class="mb-1 block text-sm font-medium text-neutral-300">Priority</label>
-        <select bind:value={editForm.priority} class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500">
-          <option value={0}>None</option>
-          <option value={1}>Low</option>
-          <option value={2}>Medium</option>
-          <option value={3}>High</option>
-        </select>
-      </div>
-      <div>
-        <label class="mb-1 block text-sm font-medium text-neutral-300">Contact</label>
-        <select bind:value={editForm.contact_id} class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500">
-          <option value="">Select contact...</option>
-          {#each lookup.contacts as c}
-            <option value={c.id}>{c.name}</option>
-          {/each}
-        </select>
-      </div>
+      <Select label="Status" bind:value={editForm.status}>
+        <option value="pending">Pending</option>
+        <option value="in_progress">In Progress</option>
+        <option value="done">Done</option>
+      </Select>
+      <Select label="Priority" bind:value={editForm.priority}>
+        <option value={0}>None</option>
+        <option value={1}>Low</option>
+        <option value={2}>Medium</option>
+        <option value={3}>High</option>
+      </Select>
+      <Select label="Contact" bind:value={editForm.contact_id}>
+        <option value="">Select contact...</option>
+        {#each lookup.contacts as c}
+          <option value={c.id}>{c.name}</option>
+        {/each}
+      </Select>
       <Input label="Activity ID" bind:value={editForm.activity_id} placeholder="Optional" />
       {#if formError}<p class="text-sm text-red-400">{formError}</p>{/if}
       <div class="flex justify-end gap-3">

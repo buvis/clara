@@ -7,6 +7,7 @@
   import Button from '$components/ui/Button.svelte';
   import Modal from '$components/ui/Modal.svelte';
   import Input from '$components/ui/Input.svelte';
+  import Textarea from '$components/ui/Textarea.svelte';
   import { Plus, BookOpen } from 'lucide-svelte';
   import type { JournalEntry } from '$lib/types/models';
 
@@ -95,10 +96,7 @@
           {/each}
         </div>
       </div>
-      <div>
-        <label class="mb-1 block text-sm font-medium text-neutral-300">Content</label>
-        <textarea bind:value={createForm.body_markdown} rows="6" placeholder="Write about your day..." class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"></textarea>
-      </div>
+      <Textarea label="Content" bind:value={createForm.body_markdown} rows="6" placeholder="Write about your day..." />
       <div class="flex justify-end gap-3">
         <Button variant="ghost" onclick={() => (showCreate = false)}>Cancel</Button>
         <Button type="submit" loading={creating}>Create</Button>
