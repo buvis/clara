@@ -1,8 +1,11 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
+
+GiftDirection = Literal["given", "received", "idea"]
 
 
 class GiftRead(BaseModel):
@@ -23,7 +26,7 @@ class GiftRead(BaseModel):
 
 class GiftCreate(BaseModel):
     contact_id: uuid.UUID
-    direction: str
+    direction: GiftDirection
     name: str
     description: str | None = None
     amount: Decimal | None = None
@@ -34,7 +37,7 @@ class GiftCreate(BaseModel):
 
 class GiftUpdate(BaseModel):
     contact_id: uuid.UUID | None = None
-    direction: str | None = None
+    direction: GiftDirection | None = None
     name: str | None = None
     description: str | None = None
     amount: Decimal | None = None

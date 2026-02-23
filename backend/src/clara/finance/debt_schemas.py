@@ -1,8 +1,11 @@
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
+
+DebtDirection = Literal["you_owe", "owed_to_you"]
 
 
 class DebtRead(BaseModel):
@@ -10,7 +13,7 @@ class DebtRead(BaseModel):
     id: uuid.UUID
     vault_id: uuid.UUID
     contact_id: uuid.UUID
-    direction: str
+    direction: DebtDirection
     amount: Decimal
     currency: str
     due_date: date | None
@@ -22,7 +25,7 @@ class DebtRead(BaseModel):
 
 class DebtCreate(BaseModel):
     contact_id: uuid.UUID
-    direction: str
+    direction: DebtDirection
     amount: Decimal
     currency: str = "USD"
     due_date: date | None = None
@@ -32,7 +35,7 @@ class DebtCreate(BaseModel):
 
 class DebtUpdate(BaseModel):
     contact_id: uuid.UUID | None = None
-    direction: str | None = None
+    direction: DebtDirection | None = None
     amount: Decimal | None = None
     currency: str | None = None
     due_date: date | None = None
