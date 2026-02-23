@@ -1,8 +1,6 @@
 import uuid
-from datetime import datetime
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
 
 from clara.auth.models import User, Vault, VaultMembership, VaultSettings
@@ -10,27 +8,15 @@ from clara.auth.schemas import (
     MemberInvite,
     MemberRead,
     MemberUpdate,
+    VaultCreate,
+    VaultRead,
     VaultSettingsRead,
     VaultSettingsUpdate,
+    VaultUpdate,
 )
 from clara.deps import CurrentUser, Db, require_role
 
 router = APIRouter()
-
-
-class VaultRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-    id: uuid.UUID
-    name: str
-    created_at: datetime
-
-
-class VaultCreate(BaseModel):
-    name: str
-
-
-class VaultUpdate(BaseModel):
-    name: str | None = None
 
 
 @router.get("", response_model=list[VaultRead])

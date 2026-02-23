@@ -119,6 +119,21 @@ class PatCreateResponse(PatRead):
     token: str
 
 
+class VaultRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    name: str
+    created_at: datetime
+
+
+class VaultCreate(BaseModel):
+    name: str
+
+
+class VaultUpdate(BaseModel):
+    name: str | None = None
+
+
 class VaultSettingsRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     vault_id: uuid.UUID
