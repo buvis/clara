@@ -37,10 +37,12 @@ FileSvc = Annotated[FileService, Depends(get_file_service)]
 
 @router.get("", response_model=PaginatedResponse[FileRead])
 async def list_files(
-    svc: FileSvc, pagination: PaginationParams = Depends()
+    svc: FileSvc,
+    pagination: PaginationParams = Depends(),
+    q: str | None = None,
 ) -> PaginatedResponse[FileRead]:
     items, total = await svc.list_files(
-        offset=pagination.offset, limit=pagination.limit
+        offset=pagination.offset, limit=pagination.limit, q=q
     )
     return PaginatedResponse(
         items=[FileRead.model_validate(f) for f in items],

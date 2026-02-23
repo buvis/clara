@@ -29,7 +29,8 @@
     });
   }
 
-  async function handleCreate() {
+  async function handleCreate(e: SubmitEvent) {
+    e.preventDefault();
     creating = true;
     try {
       const entry = await journalApi.create(vaultId, createForm);

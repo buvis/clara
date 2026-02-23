@@ -29,6 +29,7 @@ async def list_notes(
     pagination: PaginationParams = Depends(),
     contact_id: uuid.UUID | None = None,
     activity_id: uuid.UUID | None = None,
+    q: str | None = None,
 ) -> PaginatedResponse[NoteRead]:
     if contact_id is not None:
         items, total = await svc.list_by_contact(
@@ -40,7 +41,7 @@ async def list_notes(
         )
     else:
         items, total = await svc.list_notes(
-            offset=pagination.offset, limit=pagination.limit
+            offset=pagination.offset, limit=pagination.limit, q=q
         )
     return PaginatedResponse(
         items=[NoteRead.model_validate(n) for n in items],

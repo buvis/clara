@@ -12,7 +12,7 @@
 
   const vaultId = $derived(page.params.vaultId!);
 
-  let listKey = $state(0);
+  let dataList: DataList<Note>;
   let contacts = $state<Contact[]>([]);
   let filterContactId = $state<string>('');
 
@@ -20,6 +20,7 @@
   let editingNote = $state<Note | null>(null);
   let form = $state<NoteCreateInput>({ title: '', body_markdown: '', contact_id: null, activity_id: null });
   let saving = $state(false);
+  let formError = $state('');
 
   let deleteId = $state<string | null>(null);
   let deleting = $state(false);
@@ -32,6 +33,7 @@
     return notesApi.list(vaultId, {
       offset: params.offset,
       limit: params.limit,
+      q: params.search || undefined,
       ...(filterContactId ? { contact_id: filterContactId } : {})
     });
   }
@@ -53,8 +55,9 @@
     showModal = true;
   }
 
-  async function handleSave(e: Event) {
+  async function handleSave(e: SubmitEvent) {
     e.preventDefault();
+    formError = '';
     saving = true;
     try {
       if (editingNote) {
@@ -63,7 +66,9 @@
         await notesApi.create(vaultId, form);
       }
       showModal = false;
-      listKey++;
+      dataList.refresh();
+    } catch (err) {
+      formError = err instanceof Error ? err.message : 'Something went wrong';
     } finally {
       saving = false;
     }
@@ -74,7 +79,7 @@
     try {
       await notesApi.del(vaultId, id);
       deleteId = null;
-      listKey++;
+      dataList.refresh();
     } finally {
       deleting = false;
     }
@@ -93,7 +98,7 @@
   <div class="flex items-center gap-3">
     <select
       bind:value={filterContactId}
-      onchange={() => listKey++}
+      onchange={() => dataList.refresh()}
       class="rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-1.5 text-sm text-white outline-none"
     >
       <option value="">All contacts</option>
@@ -103,8 +108,8 @@
     </select>
   </div>
 
-  {#key listKey}
     <DataList
+      bind:this={dataList}
       load={loadNotes}
       searchPlaceholder="Search notes..."
       emptyIcon={StickyNote}
@@ -147,7 +152,6 @@
         </div>
       {/snippet}
     </DataList>
-  {/key}
 </div>
 
 {#if showModal}
@@ -172,6 +176,7 @@
           {/each}
         </select>
       </div>
+      {#if formError}<p class="text-sm text-red-400">{formError}</p>{/if}
       <div class="flex justify-end gap-3">
         <Button variant="ghost" onclick={() => (showModal = false)}>Cancel</Button>
         <Button type="submit" loading={saving}>Save</Button>

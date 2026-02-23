@@ -21,12 +21,13 @@
     frequency_number: 1
   });
   let creating = $state(false);
-  let listKey = $state(0);
+  let dataList: DataList<Reminder>;
   let editingReminder = $state<Reminder | null>(null);
   let deletingReminder = $state<Reminder | null>(null);
   let editForm = $state<ReminderUpdateInput>({});
   let saving = $state(false);
   let deleting = $state(false);
+  let formError = $state('');
 
   const filters = [
     { label: 'Active', value: 'active' },
@@ -46,14 +47,18 @@
     });
   }
 
-  async function handleCreate() {
+  async function handleCreate(e: SubmitEvent) {
+    e.preventDefault();
     if (!createForm.title.trim()) return;
+    formError = '';
     creating = true;
     try {
       await remindersApi.create(vaultId, createForm);
       showCreate = false;
       createForm = { title: '', next_expected_date: new Date().toISOString().split('T')[0], frequency_type: 'one_time', frequency_number: 1 };
-      listKey++;
+      dataList.refresh();
+    } catch (err) {
+      formError = err instanceof Error ? err.message : 'Something went wrong';
     } finally {
       creating = false;
     }
@@ -61,7 +66,7 @@
 
   async function markCompleted(reminder: Reminder) {
     await remindersApi.update(vaultId, reminder.id, { status: 'completed' });
-    listKey++;
+    dataList.refresh();
   }
 
   function startEdit(reminder: Reminder) {
@@ -77,13 +82,17 @@
     editingReminder = reminder;
   }
 
-  async function handleEdit() {
+  async function handleEdit(e: SubmitEvent) {
+    e.preventDefault();
     if (!editingReminder) return;
+    formError = '';
     saving = true;
     try {
       await remindersApi.update(vaultId, editingReminder.id, editForm);
-      listKey++;
+      dataList.refresh();
       editingReminder = null;
+    } catch (err) {
+      formError = err instanceof Error ? err.message : 'Something went wrong';
     } finally {
       saving = false;
     }
@@ -94,7 +103,7 @@
     deleting = true;
     try {
       await remindersApi.del(vaultId, deletingReminder.id);
-      listKey++;
+      dataList.refresh();
       deletingReminder = null;
     } finally {
       deleting = false;
@@ -115,8 +124,8 @@
 <svelte:head><title>Reminders</title></svelte:head>
 
 <div class="space-y-4">
-  {#key listKey}
     <DataList
+      bind:this={dataList}
       load={loadReminders}
       {filters}
       searchPlaceholder="Search reminders..."
@@ -151,7 +160,6 @@
         </div>
       {/snippet}
     </DataList>
-  {/key}
 </div>
 
 {#if showCreate}
@@ -175,6 +183,7 @@
       {#if createForm.frequency_type !== 'one_time'}
         <Input label="Every" type="number" min="1" bind:value={createForm.frequency_number} />
       {/if}
+      {#if formError}<p class="text-sm text-red-400">{formError}</p>{/if}
       <div class="flex justify-end gap-3">
         <Button variant="ghost" onclick={() => (showCreate = false)}>Cancel</Button>
         <Button type="submit" loading={creating}>Create</Button>
@@ -220,6 +229,7 @@
           <option value="completed">Completed</option>
         </select>
       </div>
+      {#if formError}<p class="text-sm text-red-400">{formError}</p>{/if}
       <div class="flex justify-end gap-3">
         <Button variant="ghost" onclick={() => (editingReminder = null)}>Cancel</Button>
         <Button type="submit" loading={saving}>Save</Button>

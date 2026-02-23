@@ -18,6 +18,7 @@
 
   let task = $state<Task | null>(null);
   let loading = $state(true);
+  let loadError = $state('');
   let editing = $state(false);
   let saving = $state(false);
   let showDelete = $state(false);
@@ -28,13 +29,20 @@
 
   $effect(() => {
     loading = true;
-    Promise.all([
-      tasksApi.get(vaultId, taskId),
-      lookup.loadContacts(vaultId)
-    ]).then(([t]) => {
-      task = t;
-      loading = false;
-    });
+    loadError = '';
+    (async () => {
+      try {
+        const [t] = await Promise.all([
+          tasksApi.get(vaultId, taskId),
+          lookup.loadContacts(vaultId)
+        ]);
+        task = t;
+      } catch (e) {
+        loadError = e instanceof Error ? e.message : 'Failed to load task';
+      } finally {
+        loading = false;
+      }
+    })();
   });
 
   function startEdit() {
@@ -99,6 +107,11 @@
 {#if loading}
   <div class="flex justify-center py-12">
     <Spinner />
+  </div>
+{:else if loadError}
+  <div class="flex flex-col items-center justify-center gap-4 py-20">
+    <p class="text-red-400">{loadError}</p>
+    <a href="/vaults/{vaultId}/tasks" class="text-sm text-brand-400 hover:underline">Go back</a>
   </div>
 {:else if task}
   <div class="mx-auto max-w-2xl space-y-6">

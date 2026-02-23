@@ -29,7 +29,8 @@
 
   const filters = [{ label: 'Favorites', value: 'favorite' }];
 
-  async function handleCreate() {
+  async function handleCreate(e: SubmitEvent) {
+    e.preventDefault();
     if (!createForm.first_name.trim()) return;
     creating = true;
     try {

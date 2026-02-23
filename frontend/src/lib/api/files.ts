@@ -3,7 +3,7 @@ import type { FileRecord } from '$lib/types/models';
 import type { PaginatedResponse } from '$lib/types/common';
 
 export const filesApi = {
-  list(vaultId: string, params?: { offset?: number; limit?: number }) {
+  list(vaultId: string, params?: { offset?: number; limit?: number; q?: string }) {
     return api.get<PaginatedResponse<FileRecord>>(`/vaults/${vaultId}/files${qs(params ?? {})}`);
   },
 

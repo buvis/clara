@@ -8,7 +8,7 @@
 
   const vaultId = $derived(page.params.vaultId!);
 
-  let listKey = $state(0);
+  let dataList: DataList<FileRecord>;
   let uploading = $state(false);
   let editingId = $state<string | null>(null);
   let editFilename = $state('');
@@ -16,7 +16,8 @@
   async function loadFiles(params: { offset: number; limit: number; search: string; filter: string | null }) {
     return filesApi.list(vaultId, {
       offset: params.offset,
-      limit: params.limit
+      limit: params.limit,
+      q: params.search || undefined
     });
   }
 
@@ -28,7 +29,7 @@
     uploading = true;
     try {
       await filesApi.upload(vaultId, file);
-      listKey++;
+      dataList.refresh();
     } finally {
       uploading = false;
       input.value = '';
@@ -44,7 +45,7 @@
     if (!editFilename.trim()) return;
     await filesApi.rename(vaultId, fileId, editFilename.trim());
     editingId = null;
-    listKey++;
+    dataList.refresh();
   }
 
   function cancelRename() {
@@ -53,7 +54,7 @@
 
   async function handleDelete(file: FileRecord) {
     await filesApi.del(vaultId, file.id);
-    listKey++;
+    dataList.refresh();
   }
 
   function formatSize(size: number): string {
@@ -73,8 +74,8 @@
 <div class="space-y-4">
   <input id="file-upload" type="file" class="hidden" onchange={handleUpload} />
 
-  {#key listKey}
     <DataList
+      bind:this={dataList}
       load={loadFiles}
       searchPlaceholder="Search files..."
       emptyIcon={FolderOpen}
@@ -122,5 +123,4 @@
         </div>
       {/snippet}
     </DataList>
-  {/key}
 </div>

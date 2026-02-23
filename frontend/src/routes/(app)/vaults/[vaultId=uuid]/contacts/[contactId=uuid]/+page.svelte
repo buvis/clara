@@ -27,6 +27,7 @@
 
   let contact = $state<Contact | null>(null);
   let loading = $state(true);
+  let loadError = $state('');
   let showEdit = $state(false);
   let showDelete = $state(false);
   let editForm = $state<ContactUpdateInput>({});
@@ -55,10 +56,16 @@
 
   $effect(() => {
     loading = true;
-    contactsApi.get(vaultId, contactId).then((c) => {
-      contact = c;
-      loading = false;
-    });
+    loadError = '';
+    (async () => {
+      try {
+        contact = await contactsApi.get(vaultId, contactId);
+      } catch (e) {
+        loadError = e instanceof Error ? e.message : 'Failed to load contact';
+      } finally {
+        loading = false;
+      }
+    })();
   });
 
   $effect(() => {
@@ -147,6 +154,11 @@
 
 {#if loading}
   <div class="flex justify-center py-12"><Spinner /></div>
+{:else if loadError}
+  <div class="flex flex-col items-center justify-center gap-4 py-20">
+    <p class="text-red-400">{loadError}</p>
+    <a href="/vaults/{vaultId}/contacts" class="text-sm text-brand-400 hover:underline">Go back</a>
+  </div>
 {:else if contact}
   <div class="space-y-6">
     <!-- Header -->

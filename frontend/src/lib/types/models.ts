@@ -60,31 +60,13 @@ export interface Contact {
   favorite: boolean;
   photo_file_id: string | null;
   template_id: string | null;
+  contact_methods: ContactMethod[];
+  addresses: Address[];
+  tags: Tag[];
+  pets: Pet[];
+  relationships: ContactRelationship[];
   created_at: string;
   updated_at: string;
-}
-
-export interface ContactCreate {
-  first_name: string;
-  last_name?: string;
-  nickname?: string | null;
-  birthdate?: string | null;
-  gender?: string | null;
-  pronouns?: string | null;
-  notes_summary?: string | null;
-  favorite?: boolean;
-}
-
-export interface ContactUpdate {
-  first_name?: string;
-  last_name?: string;
-  nickname?: string | null;
-  birthdate?: string | null;
-  gender?: string | null;
-  pronouns?: string | null;
-  notes_summary?: string | null;
-  favorite?: boolean;
-  photo_file_id?: string | null;
 }
 
 // --- Activities ---
@@ -96,6 +78,7 @@ export interface ActivityType {
   icon: string;
   color: string;
   created_at: string;
+  updated_at: string;
 }
 
 export interface ActivityParticipant {

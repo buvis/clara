@@ -12,9 +12,9 @@ class NoteService:
         self.repo = repo
 
     async def list_notes(
-        self, *, offset: int = 0, limit: int = 50
+        self, *, offset: int = 0, limit: int = 50, q: str | None = None
     ) -> tuple[Sequence[Note], int]:
-        return await self.repo.list(offset=offset, limit=limit)
+        return await self.repo.list(offset=offset, limit=limit, q=q)
 
     async def list_by_contact(
         self,

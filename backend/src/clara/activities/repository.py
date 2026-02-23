@@ -1,7 +1,7 @@
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import selectinload
 
 from clara.activities.models import Activity, ActivityParticipant, ActivityType
@@ -22,6 +22,26 @@ class ActivityRepository(BaseRepository[Activity]):
             .options(selectinload(Activity.participants))
             .order_by(Activity.happened_at.desc())
         )
+
+    async def list(
+        self, *, offset: int = 0, limit: int = 50, q: str | None = None
+    ) -> tuple[Sequence[Activity], int]:
+        base_where = (
+            select(func.count())
+            .select_from(Activity)
+            .where(Activity.vault_id == self.vault_id)
+            .where(Activity.deleted_at.is_(None))
+        )
+        items_stmt = self._base_query()
+        if q:
+            pattern = f"%{q}%"
+            filt = or_(Activity.title.ilike(pattern), Activity.description.ilike(pattern))
+            base_where = base_where.where(filt)
+            items_stmt = items_stmt.where(filt)
+        total: int = (await self.session.execute(base_where)).scalar_one()
+        items_stmt = items_stmt.offset(offset).limit(limit)
+        result = await self.session.execute(items_stmt)
+        return result.scalars().all(), total
 
     async def list_by_contact(
         self, contact_id: uuid.UUID, *, offset: int = 0, limit: int = 50

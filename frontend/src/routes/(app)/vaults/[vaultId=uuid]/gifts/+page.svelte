@@ -21,7 +21,8 @@
   let editForm = $state<GiftUpdateInput>({});
   let saving = $state(false);
   let deleting = $state(false);
-  let listKey = $state(0);
+  let dataList: DataList<GiftModel>;
+  let formError = $state('');
 
   const filters = [
     { label: 'Given', value: 'given' },
@@ -38,14 +39,18 @@
     });
   }
 
-  async function handleCreate() {
+  async function handleCreate(e: SubmitEvent) {
+    e.preventDefault();
     if (!createForm.name.trim()) return;
+    formError = '';
     creating = true;
     try {
       await giftsApi.create(vaultId, createForm);
       showCreate = false;
       createForm = { contact_id: '', direction: 'idea', name: '' };
-      listKey++;
+      dataList.refresh();
+    } catch (err) {
+      formError = err instanceof Error ? err.message : 'Something went wrong';
     } finally {
       creating = false;
     }
@@ -65,13 +70,17 @@
     editingGift = gift;
   }
 
-  async function handleEdit() {
+  async function handleEdit(e: SubmitEvent) {
+    e.preventDefault();
     if (!editingGift) return;
+    formError = '';
     saving = true;
     try {
       await giftsApi.update(vaultId, editingGift.id, editForm);
-      listKey++;
+      dataList.refresh();
       editingGift = null;
+    } catch (err) {
+      formError = err instanceof Error ? err.message : 'Something went wrong';
     } finally {
       saving = false;
     }
@@ -82,7 +91,7 @@
     deleting = true;
     try {
       await giftsApi.del(vaultId, deletingGift.id);
-      listKey++;
+      dataList.refresh();
       deletingGift = null;
     } finally {
       deleting = false;
@@ -93,8 +102,8 @@
 <svelte:head><title>Gifts</title></svelte:head>
 
 <div class="space-y-4">
-  {#key listKey}
     <DataList
+      bind:this={dataList}
       load={loadGifts}
       {filters}
       searchPlaceholder="Search gifts..."
@@ -125,7 +134,6 @@
         </div>
       {/snippet}
     </DataList>
-  {/key}
 </div>
 
 {#if showCreate}
@@ -154,6 +162,7 @@
         <Input label="Currency" bind:value={createForm.currency} placeholder="USD" />
       </div>
       <Input label="Link" bind:value={createForm.link} placeholder="https://" />
+      {#if formError}<p class="text-sm text-red-400">{formError}</p>{/if}
       <div class="flex justify-end gap-3">
         <Button variant="ghost" onclick={() => (showCreate = false)}>Cancel</Button>
         <Button type="submit" loading={creating}>Create</Button>
@@ -193,6 +202,7 @@
       </div>
       <Input label="Status" bind:value={editForm.status} />
       <Input label="Link" bind:value={editForm.link} placeholder="https://" />
+      {#if formError}<p class="text-sm text-red-400">{formError}</p>{/if}
       <div class="flex justify-end gap-3">
         <Button variant="ghost" onclick={() => (editingGift = null)}>Cancel</Button>
         <Button type="submit" loading={saving}>Save</Button>

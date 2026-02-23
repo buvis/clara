@@ -15,12 +15,13 @@
   let showCreate = $state(false);
   let createForm = $state<DebtCreateInput>({ contact_id: '', direction: 'you_owe', amount: 0 });
   let creating = $state(false);
-  let listKey = $state(0);
+  let dataList: DataList<Debt>;
   let editingDebt = $state<Debt | null>(null);
   let deletingDebt = $state<Debt | null>(null);
   let editForm = $state<DebtUpdateInput>({});
   let saving = $state(false);
   let deleting = $state(false);
+  let formError = $state('');
 
   const filters = [
     { label: 'You Owe', value: 'you_owe' },
@@ -38,14 +39,18 @@
     });
   }
 
-  async function handleCreate() {
+  async function handleCreate(e: SubmitEvent) {
+    e.preventDefault();
     if (!createForm.contact_id || createForm.amount <= 0) return;
+    formError = '';
     creating = true;
     try {
       await debtsApi.create(vaultId, createForm);
       showCreate = false;
       createForm = { contact_id: '', direction: 'you_owe', amount: 0 };
-      listKey++;
+      dataList.refresh();
+    } catch (err) {
+      formError = err instanceof Error ? err.message : 'Something went wrong';
     } finally {
       creating = false;
     }
@@ -64,13 +69,17 @@
     editingDebt = debt;
   }
 
-  async function handleEdit() {
+  async function handleEdit(e: SubmitEvent) {
+    e.preventDefault();
     if (!editingDebt) return;
+    formError = '';
     saving = true;
     try {
       await debtsApi.update(vaultId, editingDebt.id, editForm);
-      listKey++;
+      dataList.refresh();
       editingDebt = null;
+    } catch (err) {
+      formError = err instanceof Error ? err.message : 'Something went wrong';
     } finally {
       saving = false;
     }
@@ -81,7 +90,7 @@
     deleting = true;
     try {
       await debtsApi.del(vaultId, deletingDebt.id);
-      listKey++;
+      dataList.refresh();
       deletingDebt = null;
     } finally {
       deleting = false;
@@ -90,15 +99,15 @@
 
   async function toggleSettled(debt: Debt) {
     await debtsApi.update(vaultId, debt.id, { settled: !debt.settled });
-    listKey++;
+    dataList.refresh();
   }
 </script>
 
 <svelte:head><title>Debts</title></svelte:head>
 
 <div class="space-y-4">
-  {#key listKey}
     <DataList
+      bind:this={dataList}
       load={loadDebts}
       {filters}
       searchPlaceholder="Search debts..."
@@ -129,7 +138,6 @@
         </div>
       {/snippet}
     </DataList>
-  {/key}
 </div>
 
 {#if showCreate}
@@ -160,6 +168,7 @@
         <label class="mb-1 block text-sm font-medium text-neutral-300">Notes</label>
         <textarea bind:value={createForm.notes} rows="2" class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"></textarea>
       </div>
+      {#if formError}<p class="text-sm text-red-400">{formError}</p>{/if}
       <div class="flex justify-end gap-3">
         <Button variant="ghost" onclick={() => (showCreate = false)}>Cancel</Button>
         <Button type="submit" loading={creating}>Create</Button>
@@ -200,6 +209,7 @@
         <label class="mb-1 block text-sm font-medium text-neutral-300">Notes</label>
         <textarea bind:value={editForm.notes} rows="2" class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"></textarea>
       </div>
+      {#if formError}<p class="text-sm text-red-400">{formError}</p>{/if}
       <div class="flex justify-end gap-3">
         <Button variant="ghost" onclick={() => (editingDebt = null)}>Cancel</Button>
         <Button type="submit" loading={saving}>Save</Button>

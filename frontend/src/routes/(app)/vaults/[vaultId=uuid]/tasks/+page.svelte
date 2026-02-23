@@ -15,12 +15,13 @@
   let showCreate = $state(false);
   let createForm = $state<TaskCreateInput>({ title: '' });
   let creating = $state(false);
-  let listKey = $state(0);
+  let dataList: DataList<Task>;
   let editingTask = $state<Task | null>(null);
   let deletingTask = $state<Task | null>(null);
   let editForm = $state<TaskUpdateInput>({});
   let saving = $state(false);
   let deleting = $state(false);
+  let formError = $state('');
 
   const filters = [
     { label: 'Pending', value: 'pending' },
@@ -43,14 +44,18 @@
     });
   }
 
-  async function handleCreate() {
+  async function handleCreate(e: SubmitEvent) {
+    e.preventDefault();
     if (!createForm.title.trim()) return;
+    formError = '';
     creating = true;
     try {
       await tasksApi.create(vaultId, createForm);
       showCreate = false;
       createForm = { title: '' };
-      listKey++;
+      dataList.refresh();
+    } catch (err) {
+      formError = err instanceof Error ? err.message : 'Something went wrong';
     } finally {
       creating = false;
     }
@@ -69,13 +74,17 @@
     editingTask = task;
   }
 
-  async function handleEdit() {
+  async function handleEdit(e: SubmitEvent) {
+    e.preventDefault();
     if (!editingTask) return;
+    formError = '';
     saving = true;
     try {
       await tasksApi.update(vaultId, editingTask.id, editForm);
-      listKey++;
+      dataList.refresh();
       editingTask = null;
+    } catch (err) {
+      formError = err instanceof Error ? err.message : 'Something went wrong';
     } finally {
       saving = false;
     }
@@ -86,7 +95,7 @@
     deleting = true;
     try {
       await tasksApi.del(vaultId, deletingTask.id);
-      listKey++;
+      dataList.refresh();
       deletingTask = null;
     } finally {
       deleting = false;
@@ -96,7 +105,7 @@
   async function toggleComplete(task: Task) {
     const newStatus = task.status === 'done' ? 'pending' : 'done';
     await tasksApi.update(vaultId, task.id, { status: newStatus });
-    listKey++;
+    dataList.refresh();
   }
 
   function formatDate(d: string | null | undefined): string {
@@ -110,8 +119,8 @@
 <svelte:head><title>Tasks</title></svelte:head>
 
 <div class="space-y-4">
-  {#key listKey}
     <DataList
+      bind:this={dataList}
       load={loadTasks}
       {filters}
       searchPlaceholder="Search tasks..."
@@ -149,7 +158,6 @@
         </div>
       {/snippet}
     </DataList>
-  {/key}
 </div>
 
 {#if showCreate}
@@ -170,6 +178,7 @@
           <option value={3}>High</option>
         </select>
       </div>
+      {#if formError}<p class="text-sm text-red-400">{formError}</p>{/if}
       <div class="flex justify-end gap-3">
         <Button variant="ghost" onclick={() => (showCreate = false)}>Cancel</Button>
         <Button type="submit" loading={creating}>Create</Button>
@@ -214,6 +223,7 @@
         </select>
       </div>
       <Input label="Activity ID" bind:value={editForm.activity_id} placeholder="Optional" />
+      {#if formError}<p class="text-sm text-red-400">{formError}</p>{/if}
       <div class="flex justify-end gap-3">
         <Button variant="ghost" onclick={() => (editingTask = null)}>Cancel</Button>
         <Button type="submit" loading={saving}>Save</Button>

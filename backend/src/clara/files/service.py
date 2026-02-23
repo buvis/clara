@@ -25,9 +25,9 @@ class FileService:
         self.uploader_id = uploader_id
 
     async def list_files(
-        self, *, offset: int = 0, limit: int = 50
+        self, *, offset: int = 0, limit: int = 50, q: str | None = None
     ) -> tuple[Sequence[File], int]:
-        return await self.repo.list(offset=offset, limit=limit)
+        return await self.repo.list(offset=offset, limit=limit, q=q)
 
     async def get_file(self, file_id: uuid.UUID) -> File:
         file = await self.repo.get_by_id(file_id)

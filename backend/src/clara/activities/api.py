@@ -92,10 +92,12 @@ async def delete_activity_type(type_id: uuid.UUID, svc: TypeSvc) -> None:
 
 @router.get("", response_model=PaginatedResponse[ActivityRead])
 async def list_activities(
-    svc: ActivitySvc, pagination: PaginationParams = Depends()
+    svc: ActivitySvc,
+    pagination: PaginationParams = Depends(),
+    q: str | None = None,
 ) -> PaginatedResponse[ActivityRead]:
     items, total = await svc.list_activities(
-        offset=pagination.offset, limit=pagination.limit
+        offset=pagination.offset, limit=pagination.limit, q=q
     )
     return PaginatedResponse(
         items=[ActivityRead.model_validate(a) for a in items],

@@ -21,13 +21,14 @@
     location: ''
   });
   let creating = $state(false);
-  let listKey = $state(0);
+  let dataList: DataList<Activity>;
   let editingActivity = $state<Activity | null>(null);
   let deletingActivity = $state<Activity | null>(null);
   let editForm = $state<ActivityUpdateInput>({});
   let editParticipants = $state<ParticipantInput[]>([]);
   let saving = $state(false);
   let deleting = $state(false);
+  let formError = $state('');
 
   $effect(() => {
     lookup.loadContacts(vaultId);
@@ -37,18 +38,23 @@
   async function loadActivities(params: { offset: number; limit: number; search: string; filter: string | null }) {
     return activitiesApi.list(vaultId, {
       offset: params.offset,
-      limit: params.limit
+      limit: params.limit,
+      q: params.search || undefined
     });
   }
 
-  async function handleCreate() {
+  async function handleCreate(e: SubmitEvent) {
+    e.preventDefault();
     if (!createForm.title.trim() || !createForm.happened_at) return;
+    formError = '';
     creating = true;
     try {
       await activitiesApi.create(vaultId, createForm);
       showCreate = false;
       createForm = { title: '', description: '', happened_at: '', location: '' };
-      listKey++;
+      dataList.refresh();
+    } catch (err) {
+      formError = err instanceof Error ? err.message : 'Something went wrong';
     } finally {
       creating = false;
     }
@@ -69,8 +75,10 @@
     editingActivity = activity;
   }
 
-  async function handleEdit() {
+  async function handleEdit(e: SubmitEvent) {
+    e.preventDefault();
     if (!editingActivity) return;
+    formError = '';
     saving = true;
     try {
       const data = {
@@ -79,8 +87,10 @@
         participants: editParticipants
       };
       await activitiesApi.update(vaultId, editingActivity.id, data);
-      listKey++;
+      dataList.refresh();
       editingActivity = null;
+    } catch (err) {
+      formError = err instanceof Error ? err.message : 'Something went wrong';
     } finally {
       saving = false;
     }
@@ -91,7 +101,7 @@
     deleting = true;
     try {
       await activitiesApi.del(vaultId, deletingActivity.id);
-      listKey++;
+      dataList.refresh();
       deletingActivity = null;
     } finally {
       deleting = false;
@@ -111,8 +121,8 @@
 <svelte:head><title>Activities</title></svelte:head>
 
 <div class="space-y-4">
-  {#key listKey}
     <DataList
+      bind:this={dataList}
       load={loadActivities}
       searchPlaceholder="Search activities..."
       emptyIcon={CalendarDays}
@@ -145,7 +155,6 @@
         </div>
       {/snippet}
     </DataList>
-  {/key}
 </div>
 
 {#if showCreate}
@@ -162,6 +171,7 @@
       </div>
       <Input label="Date and time" type="datetime-local" bind:value={createForm.happened_at} required />
       <Input label="Location" bind:value={createForm.location} />
+      {#if formError}<p class="text-sm text-red-400">{formError}</p>{/if}
       <div class="flex justify-end gap-3">
         <Button variant="ghost" onclick={() => (showCreate = false)}>Cancel</Button>
         <Button type="submit" loading={creating}>Create</Button>
@@ -199,6 +209,7 @@
         <ParticipantsEditor bind:participants={editParticipants} {vaultId} />
       </div>
 
+      {#if formError}<p class="text-sm text-red-400">{formError}</p>{/if}
       <div class="flex justify-end gap-3">
         <Button variant="ghost" onclick={() => (editingActivity = null)}>Cancel</Button>
         <Button type="submit" loading={saving}>Save</Button>

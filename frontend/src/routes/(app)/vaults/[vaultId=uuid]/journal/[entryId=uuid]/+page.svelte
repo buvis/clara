@@ -15,6 +15,7 @@
 
   let entry = $state<JournalEntry | null>(null);
   let loading = $state(true);
+  let loadError = $state('');
   let editing = $state(false);
   let saving = $state(false);
   let showDelete = $state(false);
@@ -25,7 +26,16 @@
 
   $effect(() => {
     loading = true;
-    journalApi.get(vaultId, entryId).then((e) => { entry = e; loading = false; });
+    loadError = '';
+    (async () => {
+      try {
+        entry = await journalApi.get(vaultId, entryId);
+      } catch (e) {
+        loadError = e instanceof Error ? e.message : 'Failed to load entry';
+      } finally {
+        loading = false;
+      }
+    })();
   });
 
   function startEdit() {
@@ -53,6 +63,11 @@
 
 {#if loading}
   <div class="flex justify-center py-12"><Spinner /></div>
+{:else if loadError}
+  <div class="flex flex-col items-center justify-center gap-4 py-20">
+    <p class="text-red-400">{loadError}</p>
+    <a href="/vaults/{vaultId}/journal" class="text-sm text-brand-400 hover:underline">Go back</a>
+  </div>
 {:else if entry}
   <div class="mx-auto max-w-2xl space-y-6">
     <div class="flex items-center justify-between">

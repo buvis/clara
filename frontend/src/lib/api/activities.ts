@@ -27,7 +27,7 @@ export interface ActivityTypeCreateInput {
 export type ActivityTypeUpdateInput = Partial<ActivityTypeCreateInput>;
 
 export const activitiesApi = {
-  list(vaultId: string, params?: { offset?: number; limit?: number }) {
+  list(vaultId: string, params?: { offset?: number; limit?: number; q?: string }) {
     return api.get<PaginatedResponse<Activity>>(`/vaults/${vaultId}/activities${qs(params ?? {})}`);
   },
 

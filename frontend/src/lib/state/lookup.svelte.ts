@@ -10,33 +10,33 @@ interface ContactLookup {
 class LookupState {
   contacts = $state<ContactLookup[]>([]);
   activityTypes = $state<ActivityType[]>([]);
-  private contactsLoaded = false;
-  private activityTypesLoaded = false;
+  private contactsVaultId: string | null = null;
+  private activityTypesVaultId: string | null = null;
 
   async loadContacts(vaultId: string): Promise<void> {
-    if (this.contactsLoaded) return;
+    if (this.contactsVaultId === vaultId) return;
     try {
       const res = await api.get<PaginatedResponse<Contact>>(
-        `/vaults/${vaultId}/contacts?limit=200`
+        `/vaults/${vaultId}/contacts?limit=1000`
       );
       this.contacts = res.items.map((c) => ({
         id: c.id,
         name: `${c.first_name} ${c.last_name}`.trim()
       }));
-      this.contactsLoaded = true;
+      this.contactsVaultId = vaultId;
     } catch {
       this.contacts = [];
     }
   }
 
   async loadActivityTypes(vaultId: string): Promise<void> {
-    if (this.activityTypesLoaded) return;
+    if (this.activityTypesVaultId === vaultId) return;
     try {
       const res = await api.get<PaginatedResponse<ActivityType>>(
-        `/vaults/${vaultId}/activities/types?limit=200`
+        `/vaults/${vaultId}/activities/types?limit=1000`
       );
       this.activityTypes = res.items;
-      this.activityTypesLoaded = true;
+      this.activityTypesVaultId = vaultId;
     } catch {
       this.activityTypes = [];
     }
@@ -47,8 +47,8 @@ class LookupState {
   }
 
   invalidate(): void {
-    this.contactsLoaded = false;
-    this.activityTypesLoaded = false;
+    this.contactsVaultId = null;
+    this.activityTypesVaultId = null;
     this.contacts = [];
     this.activityTypes = [];
   }
