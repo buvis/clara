@@ -63,4 +63,14 @@ describe('Task detail page', () => {
     render(TaskDetailPage);
     await waitFor(() => expect(screen.getByText('No description provided.')).toBeInTheDocument());
   });
+
+  it('shows error on load failure', async () => {
+    mockGet.mockRejectedValue(new Error('Network error'));
+    render(TaskDetailPage);
+    await waitFor(() => {
+      expect(screen.getByText('Network error')).toBeInTheDocument();
+      expect(screen.getByText('Go back')).toBeInTheDocument();
+    });
+    expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
+  });
 });

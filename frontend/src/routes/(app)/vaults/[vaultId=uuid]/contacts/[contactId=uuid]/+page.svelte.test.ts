@@ -73,4 +73,14 @@ describe('Contact detail page', () => {
     render(ContactDetailPage);
     await waitFor(() => expect(screen.getByText('"Ali"')).toBeInTheDocument());
   });
+
+  it('shows error on load failure', async () => {
+    mockGet.mockRejectedValue(new Error('Network error'));
+    render(ContactDetailPage);
+    await waitFor(() => {
+      expect(screen.getByText('Network error')).toBeInTheDocument();
+      expect(screen.getByText('Go back')).toBeInTheDocument();
+    });
+    expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
+  });
 });

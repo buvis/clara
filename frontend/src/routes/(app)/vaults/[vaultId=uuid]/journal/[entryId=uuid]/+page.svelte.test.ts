@@ -44,4 +44,14 @@ describe('Journal detail page', () => {
     render(JournalDetailPage);
     await waitFor(() => expect(screen.getByText('\u{1F642}')).toBeInTheDocument());
   });
+
+  it('shows error on load failure', async () => {
+    mockGet.mockRejectedValue(new Error('Network error'));
+    render(JournalDetailPage);
+    await waitFor(() => {
+      expect(screen.getByText('Network error')).toBeInTheDocument();
+      expect(screen.getByText('Go back')).toBeInTheDocument();
+    });
+    expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
+  });
 });
