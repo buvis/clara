@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: clara-frontend:latest
+          image: clara-frontend:v0.1.0
           ports:
             - containerPort: 80
 ---

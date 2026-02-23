@@ -66,7 +66,7 @@ def create_app() -> FastAPI:
         )
         return response
 
-    @app.get("/health")
+    @app.get("/api/v1/health")
     async def health() -> dict[str, str]:
         return {"status": "ok"}
 

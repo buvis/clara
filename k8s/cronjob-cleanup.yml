@@ -12,8 +12,8 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: cleanup
-              image: clara-backend:latest
-              command: ["python", "-m", "clara.jobs.cleanup"]
+              image: clara-backend:v0.1.0
+              command: ["uv", "run", "python", "-m", "clara.jobs.cleanup"]
               envFrom:
                 - configMapRef:
                     name: clara-config

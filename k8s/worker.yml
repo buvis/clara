@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: worker
-          image: clara-backend:latest
+          image: clara-backend:v0.1.0
           command: ["uv", "run", "python", "-m", "clara.worker"]
           resources:
             requests:

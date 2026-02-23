@@ -12,8 +12,8 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: daily-digest
-              image: clara-backend:latest
-              command: ["python", "-m", "clara.jobs.digest", "daily"]
+              image: clara-backend:v0.1.0
+              command: ["uv", "run", "python", "-m", "clara.jobs.digest", "daily"]
               envFrom:
                 - configMapRef:
                     name: clara-config
