@@ -22,9 +22,7 @@ def get_journal_service(
     vault_id: uuid.UUID, db: Db, _access: VaultAccess, user: CurrentUser
 ) -> JournalService:
     repo = JournalEntryRepository(session=db, vault_id=vault_id)
-    return JournalService(
-        repo=repo, session=db, user_id=user.id, vault_id=vault_id
-    )
+    return JournalService(repo=repo, user_id=user.id)
 
 
 JournalSvc = Annotated[JournalService, Depends(get_journal_service)]

@@ -3,7 +3,6 @@ from collections.abc import Sequence
 from datetime import date
 
 from sqlalchemy import delete
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from clara.exceptions import NotFoundError
 from clara.journal.models import JournalEntry, JournalEntryContact
@@ -12,17 +11,9 @@ from clara.journal.schemas import JournalEntryCreate, JournalEntryUpdate
 
 
 class JournalService:
-    def __init__(
-        self,
-        repo: JournalEntryRepository,
-        session: AsyncSession,
-        user_id: uuid.UUID,
-        vault_id: uuid.UUID,
-    ) -> None:
+    def __init__(self, repo: JournalEntryRepository, user_id: uuid.UUID) -> None:
         self.repo = repo
-        self.session = session
         self.user_id = user_id
-        self.vault_id = vault_id
 
     async def list_entries(
         self, *, offset: int = 0, limit: int = 50
@@ -46,7 +37,7 @@ class JournalService:
         payload = data.model_dump(exclude={"contact_ids"})
         entry = await self.repo.create(**payload, created_by_id=self.user_id)
         await self._sync_contacts(entry.id, data.contact_ids)
-        await self.session.flush()
+        await self.repo.session.flush()
         return await self.get_entry(entry.id)
 
     async def update_entry(
@@ -57,7 +48,7 @@ class JournalService:
             await self.repo.update(entry_id, **payload)
         if data.contact_ids is not None:
             await self._sync_contacts(entry_id, data.contact_ids)
-        await self.session.flush()
+        await self.repo.session.flush()
         return await self.get_entry(entry_id)
 
     async def delete_entry(self, entry_id: uuid.UUID) -> None:
@@ -66,15 +57,15 @@ class JournalService:
     async def _sync_contacts(
         self, entry_id: uuid.UUID, contact_ids: list[uuid.UUID]
     ) -> None:
-        await self.session.execute(
+        await self.repo.session.execute(
             delete(JournalEntryContact).where(
                 JournalEntryContact.journal_entry_id == entry_id
             )
         )
         for cid in contact_ids:
             link = JournalEntryContact(
-                vault_id=self.vault_id,
+                vault_id=self.repo.vault_id,
                 journal_entry_id=entry_id,
                 contact_id=cid,
             )
-            self.session.add(link)
+            self.repo.session.add(link)
