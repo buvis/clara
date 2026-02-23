@@ -1,4 +1,4 @@
-import { api, qs } from '$api/client';
+import { api, ApiClientError, getCsrfToken, qs } from '$api/client';
 import type { FileRecord } from '$lib/types/models';
 import type { PaginatedResponse } from '$lib/types/common';
 
@@ -14,10 +14,7 @@ export const filesApi = {
   async upload(vaultId: string, file: File) {
     const form = new FormData();
     form.append('file', file);
-    const csrf = document.cookie
-      .split('; ')
-      .find((c) => c.startsWith('csrf_token='))
-      ?.split('=')[1];
+    const csrf = getCsrfToken();
     const headers: Record<string, string> = {};
     if (csrf) headers['x-csrf-token'] = csrf;
     const res = await fetch(`/api/v1/vaults/${vaultId}/files`, {
@@ -28,7 +25,7 @@ export const filesApi = {
     });
     if (!res.ok) {
       const data = await res.json();
-      throw new Error(data.detail ?? 'Upload failed');
+      throw new ApiClientError(res.status, data.detail ?? 'Upload failed');
     }
     return (await res.json()) as FileRecord;
   },

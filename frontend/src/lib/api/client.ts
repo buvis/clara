@@ -1,5 +1,9 @@
 import { goto } from '$app/navigation';
 
+export function getCsrfToken(): string {
+  return document.cookie.match(/csrf_token=([^;]+)/)?.[1] ?? '';
+}
+
 export class ApiClientError extends Error {
   constructor(
     public status: number,
@@ -26,10 +30,7 @@ class ApiClient {
 
     // Send CSRF token for state-changing requests
     if (method !== 'GET' && method !== 'HEAD') {
-      const csrf = document.cookie
-        .split('; ')
-        .find((c) => c.startsWith('csrf_token='))
-        ?.split('=')[1];
+      const csrf = getCsrfToken();
       if (csrf) {
         headers['x-csrf-token'] = csrf;
       }

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, Uuid
+from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, String, Text, Uuid
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from clara.base.model import Base, SoftDeleteMixin, TimestampMixin
@@ -73,7 +73,7 @@ class PersonalAccessToken(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(255))
     token_prefix: Mapped[str] = mapped_column(String(12))
     token_hash: Mapped[str] = mapped_column(Text)
-    scopes: Mapped[str] = mapped_column(Text, default='["read","write"]')
+    scopes: Mapped[list] = mapped_column(JSON, default=list, server_default='["read","write"]')
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
@@ -89,6 +89,8 @@ class VaultSettings(TimestampMixin, Base):
     date_format: Mapped[str] = mapped_column(String(20), default="YYYY-MM-DD")
     time_format: Mapped[str] = mapped_column(String(5), default="24h")
     timezone: Mapped[str] = mapped_column(String(50), default="UTC")
-    feature_flags: Mapped[str] = mapped_column(
-        Text, default='{"debts":true,"gifts":true,"pets":true,"journal":true}'
+    feature_flags: Mapped[dict] = mapped_column(
+        JSON,
+        default=dict,
+        server_default='{"debts":true,"gifts":true,"pets":true,"journal":true}',
     )

@@ -2,7 +2,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import date
 
-from sqlalchemy import func, select
+from sqlalchemy import Select
 
 from clara.base.repository import BaseRepository
 from clara.reminders.models import Reminder, StayInTouchConfig
@@ -18,23 +18,12 @@ class ReminderRepository(BaseRepository[Reminder]):
         offset: int = 0,
         limit: int = 50,
     ) -> tuple[Sequence[Reminder], int]:
-        base = self._base_query().where(Reminder.status == status)
-        count_stmt = (
-            select(func.count())
-            .select_from(Reminder)
-            .where(Reminder.vault_id == self.vault_id)
-            .where(Reminder.deleted_at.is_(None))
-            .where(Reminder.status == status)
+        return await self.filtered_list(
+            Reminder.status == status,
+            order_by=Reminder.next_expected_date.asc(),
+            offset=offset,
+            limit=limit,
         )
-        total = (await self.session.execute(count_stmt)).scalar_one()
-        items_stmt = (
-            base
-            .order_by(Reminder.next_expected_date.asc())
-            .offset(offset)
-            .limit(limit)
-        )
-        result = await self.session.execute(items_stmt)
-        return result.scalars().all(), total
 
     async def list_by_contact(
         self,
@@ -43,23 +32,12 @@ class ReminderRepository(BaseRepository[Reminder]):
         offset: int = 0,
         limit: int = 50,
     ) -> tuple[Sequence[Reminder], int]:
-        base = self._base_query().where(Reminder.contact_id == contact_id)
-        count_stmt = (
-            select(func.count())
-            .select_from(Reminder)
-            .where(Reminder.vault_id == self.vault_id)
-            .where(Reminder.deleted_at.is_(None))
-            .where(Reminder.contact_id == contact_id)
+        return await self.filtered_list(
+            Reminder.contact_id == contact_id,
+            order_by=Reminder.next_expected_date.asc(),
+            offset=offset,
+            limit=limit,
         )
-        total = (await self.session.execute(count_stmt)).scalar_one()
-        items_stmt = (
-            base
-            .order_by(Reminder.next_expected_date.asc())
-            .offset(offset)
-            .limit(limit)
-        )
-        result = await self.session.execute(items_stmt)
-        return result.scalars().all(), total
 
     async def list_upcoming(
         self,
@@ -68,28 +46,13 @@ class ReminderRepository(BaseRepository[Reminder]):
         offset: int = 0,
         limit: int = 50,
     ) -> tuple[Sequence[Reminder], int]:
-        base = (
-            self._base_query()
-            .where(Reminder.status == "active")
-            .where(Reminder.next_expected_date >= as_of)
+        return await self.filtered_list(
+            Reminder.status == "active",
+            Reminder.next_expected_date >= as_of,
+            order_by=Reminder.next_expected_date.asc(),
+            offset=offset,
+            limit=limit,
         )
-        count_stmt = (
-            select(func.count())
-            .select_from(Reminder)
-            .where(Reminder.vault_id == self.vault_id)
-            .where(Reminder.deleted_at.is_(None))
-            .where(Reminder.status == "active")
-            .where(Reminder.next_expected_date >= as_of)
-        )
-        total = (await self.session.execute(count_stmt)).scalar_one()
-        items_stmt = (
-            base
-            .order_by(Reminder.next_expected_date.asc())
-            .offset(offset)
-            .limit(limit)
-        )
-        result = await self.session.execute(items_stmt)
-        return result.scalars().all(), total
 
     async def list_overdue(
         self,
@@ -98,28 +61,13 @@ class ReminderRepository(BaseRepository[Reminder]):
         offset: int = 0,
         limit: int = 50,
     ) -> tuple[Sequence[Reminder], int]:
-        base = (
-            self._base_query()
-            .where(Reminder.status == "active")
-            .where(Reminder.next_expected_date < as_of)
+        return await self.filtered_list(
+            Reminder.status == "active",
+            Reminder.next_expected_date < as_of,
+            order_by=Reminder.next_expected_date.asc(),
+            offset=offset,
+            limit=limit,
         )
-        count_stmt = (
-            select(func.count())
-            .select_from(Reminder)
-            .where(Reminder.vault_id == self.vault_id)
-            .where(Reminder.deleted_at.is_(None))
-            .where(Reminder.status == "active")
-            .where(Reminder.next_expected_date < as_of)
-        )
-        total = (await self.session.execute(count_stmt)).scalar_one()
-        items_stmt = (
-            base
-            .order_by(Reminder.next_expected_date.asc())
-            .offset(offset)
-            .limit(limit)
-        )
-        result = await self.session.execute(items_stmt)
-        return result.scalars().all(), total
 
 
 class StayInTouchRepository(BaseRepository[StayInTouchConfig]):

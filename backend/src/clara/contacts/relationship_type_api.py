@@ -1,11 +1,9 @@
 import uuid
-from datetime import UTC, datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from clara.base.repository import BaseRepository
-from clara.contacts.models import RelationshipType
+from clara.contacts.repository import RelationshipTypeRepository
 from clara.contacts.sub_schemas import (
     RelationshipTypeCreate,
     RelationshipTypeRead,
@@ -15,15 +13,6 @@ from clara.deps import Db, VaultAccess
 from clara.exceptions import NotFoundError
 
 router = APIRouter()
-
-
-class RelationshipTypeRepository(BaseRepository[RelationshipType]):
-    model = RelationshipType
-
-    async def list_all(self) -> list[RelationshipType]:
-        stmt = self._base_query().order_by(RelationshipType.created_at.desc())
-        result = await self.session.execute(stmt)
-        return list(result.scalars().all())
 
 
 def get_repo(
@@ -73,8 +62,4 @@ async def update_relationship_type(
 
 @router.delete("/{type_id}", status_code=204)
 async def delete_relationship_type(type_id: uuid.UUID, repo: Repo) -> None:
-    item = await repo.get_by_id(type_id)
-    if item is None:
-        raise NotFoundError("RelationshipType", type_id)
-    item.deleted_at = datetime.now(UTC)
-    await repo.session.flush()
+    await repo.soft_delete(type_id)

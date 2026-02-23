@@ -1,131 +1,64 @@
 import uuid
-from datetime import UTC, datetime
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException
-from sqlalchemy import func, select, update
+from fastapi import APIRouter, Depends
 
 from clara.deps import CurrentUser, Db, VaultAccess
-from clara.notifications.models import Notification
+from clara.notifications.repository import NotificationRepository
 from clara.notifications.schemas import (
     NotificationMarkRead,
     NotificationRead,
     UnreadCount,
 )
+from clara.notifications.service import NotificationService
 
 router = APIRouter()
 
 
+def get_notification_service(
+    vault_id: uuid.UUID, db: Db, _access: VaultAccess, user: CurrentUser
+) -> NotificationService:
+    repo = NotificationRepository(session=db, vault_id=vault_id, user_id=user.id)
+    return NotificationService(repo=repo)
+
+
+NotifSvc = Annotated[NotificationService, Depends(get_notification_service)]
+
+
 @router.get("", response_model=list[NotificationRead])
-async def list_notifications(
-    vault_id: uuid.UUID, user: CurrentUser, db: Db, _access: VaultAccess
-) -> list[NotificationRead]:
-    stmt = (
-        select(Notification)
-        .where(
-            Notification.vault_id == vault_id,
-            Notification.user_id == user.id,
-            Notification.deleted_at.is_(None),
-        )
-        .order_by(Notification.read.asc(), Notification.created_at.desc())
-        .limit(100)
-    )
-    items = (await db.execute(stmt)).scalars().all()
+async def list_notifications(svc: NotifSvc) -> list[NotificationRead]:
+    items = await svc.list_notifications()
     return [NotificationRead.model_validate(n) for n in items]
 
 
 @router.get("/unread-count", response_model=UnreadCount)
-async def unread_count(
-    vault_id: uuid.UUID, user: CurrentUser, db: Db, _access: VaultAccess
-) -> UnreadCount:
-    stmt = (
-        select(func.count())
-        .select_from(Notification)
-        .where(
-            Notification.vault_id == vault_id,
-            Notification.user_id == user.id,
-            Notification.read.is_(False),
-            Notification.deleted_at.is_(None),
-        )
-    )
-    count = (await db.execute(stmt)).scalar_one()
+async def unread_count(svc: NotifSvc) -> UnreadCount:
+    count = await svc.unread_count()
     return UnreadCount(count=count)
 
 
 @router.patch("/{notification_id}", response_model=NotificationRead)
 async def mark_notification(
-    vault_id: uuid.UUID,
     notification_id: uuid.UUID,
     body: NotificationMarkRead,
-    user: CurrentUser,
-    db: Db,
-    _access: VaultAccess,
+    svc: NotifSvc,
 ) -> NotificationRead:
-    stmt = select(Notification).where(
-        Notification.id == notification_id,
-        Notification.vault_id == vault_id,
-        Notification.user_id == user.id,
-        Notification.deleted_at.is_(None),
-    )
-    notification = (await db.execute(stmt)).scalar_one_or_none()
-    if notification is None:
-        raise HTTPException(status_code=404, detail="Notification not found")
-    notification.read = body.read
-    await db.flush()
-    return NotificationRead.model_validate(notification)
+    n = await svc.mark_notification(notification_id, body)
+    return NotificationRead.model_validate(n)
 
 
 @router.post("/mark-all-read", status_code=204)
-async def mark_all_read(
-    vault_id: uuid.UUID, user: CurrentUser, db: Db, _access: VaultAccess
-) -> None:
-    stmt = (
-        update(Notification)
-        .where(
-            Notification.vault_id == vault_id,
-            Notification.user_id == user.id,
-            Notification.read.is_(False),
-            Notification.deleted_at.is_(None),
-        )
-        .values(read=True)
-    )
-    await db.execute(stmt)
-    await db.flush()
+async def mark_all_read(svc: NotifSvc) -> None:
+    await svc.mark_all_read()
 
 
 @router.delete("/clear-read", status_code=204)
-async def clear_read_notifications(
-    vault_id: uuid.UUID, user: CurrentUser, db: Db, _access: VaultAccess
-) -> None:
-    stmt = (
-        update(Notification)
-        .where(
-            Notification.vault_id == vault_id,
-            Notification.user_id == user.id,
-            Notification.read.is_(True),
-            Notification.deleted_at.is_(None),
-        )
-        .values(deleted_at=datetime.now(UTC))
-    )
-    await db.execute(stmt)
-    await db.flush()
+async def clear_read_notifications(svc: NotifSvc) -> None:
+    await svc.clear_read()
 
 
 @router.delete("/{notification_id}", status_code=204)
 async def delete_notification(
-    vault_id: uuid.UUID,
-    notification_id: uuid.UUID,
-    user: CurrentUser,
-    db: Db,
-    _access: VaultAccess,
+    notification_id: uuid.UUID, svc: NotifSvc
 ) -> None:
-    stmt = select(Notification).where(
-        Notification.id == notification_id,
-        Notification.vault_id == vault_id,
-        Notification.user_id == user.id,
-        Notification.deleted_at.is_(None),
-    )
-    notification = (await db.execute(stmt)).scalar_one_or_none()
-    if notification is None:
-        raise HTTPException(status_code=404, detail="Notification not found")
-    notification.deleted_at = datetime.now(UTC)
-    await db.flush()
+    await svc.delete_notification(notification_id)

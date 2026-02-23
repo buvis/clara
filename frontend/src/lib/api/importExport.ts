@@ -1,13 +1,10 @@
-import { api } from '$api/client';
+import { api, ApiClientError, getCsrfToken } from '$api/client';
 
 export const importExportApi = {
   async importVcard(vaultId: string, file: File) {
     const form = new FormData();
     form.append('file', file);
-    const csrf = document.cookie
-      .split('; ')
-      .find((c) => c.startsWith('csrf_token='))
-      ?.split('=')[1];
+    const csrf = getCsrfToken();
     const headers: Record<string, string> = {};
     if (csrf) headers['x-csrf-token'] = csrf;
     const res = await fetch(`/api/v1/vaults/${vaultId}/import/vcard`, {
@@ -18,7 +15,7 @@ export const importExportApi = {
     });
     if (!res.ok) {
       const data = await res.json();
-      throw new Error(data.detail ?? 'Import failed');
+      throw new ApiClientError(res.status, data.detail ?? 'Import failed');
     }
     return await res.json();
   },
@@ -26,10 +23,7 @@ export const importExportApi = {
   async importCsv(vaultId: string, file: File) {
     const form = new FormData();
     form.append('file', file);
-    const csrf = document.cookie
-      .split('; ')
-      .find((c) => c.startsWith('csrf_token='))
-      ?.split('=')[1];
+    const csrf = getCsrfToken();
     const headers: Record<string, string> = {};
     if (csrf) headers['x-csrf-token'] = csrf;
     const res = await fetch(`/api/v1/vaults/${vaultId}/import/csv`, {
@@ -40,7 +34,7 @@ export const importExportApi = {
     });
     if (!res.ok) {
       const data = await res.json();
-      throw new Error(data.detail ?? 'Import failed');
+      throw new ApiClientError(res.status, data.detail ?? 'Import failed');
     }
     return await res.json();
   },

@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 
@@ -90,11 +91,11 @@ class MemberRead(BaseModel):
 
 class MemberInvite(BaseModel):
     email: EmailStr
-    role: str = "member"
+    role: Literal["owner", "admin", "member"] = "member"
 
 
 class MemberUpdate(BaseModel):
-    role: str
+    role: Literal["owner", "admin", "member"]
 
 
 class PatCreate(BaseModel):
@@ -125,7 +126,7 @@ class VaultSettingsRead(BaseModel):
     date_format: str
     time_format: str
     timezone: str
-    feature_flags: str
+    feature_flags: dict
 
 
 class VaultSettingsUpdate(BaseModel):
@@ -133,4 +134,4 @@ class VaultSettingsUpdate(BaseModel):
     date_format: str | None = None
     time_format: str | None = None
     timezone: str | None = None
-    feature_flags: str | None = None
+    feature_flags: dict | None = None

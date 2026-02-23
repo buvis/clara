@@ -31,10 +31,10 @@ async def test_task_crud(authenticated_client: AsyncClient, vault: Vault):
     # Update
     resp = await authenticated_client.patch(
         f"/api/v1/vaults/{vault.id}/tasks/{task_id}",
-        json={"title": "Buy organic groceries", "status": "completed"},
+        json={"title": "Buy organic groceries", "status": "done"},
     )
     assert resp.status_code == 200
-    assert resp.json()["status"] == "completed"
+    assert resp.json()["status"] == "done"
 
     # Delete
     resp = await authenticated_client.delete(

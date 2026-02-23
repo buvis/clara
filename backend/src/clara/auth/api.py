@@ -6,11 +6,11 @@ import secrets
 import string
 import uuid
 from datetime import UTC, datetime
-from typing import cast
+from typing import Annotated, cast
 
 import pyotp
 import qrcode
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy import delete, select
 
 from clara.auth.models import PersonalAccessToken, RecoveryCode, TotpDevice, User
@@ -51,6 +51,13 @@ from clara.redis import blacklist_token, get_redis
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+def get_auth_service(db: Db) -> AuthService:
+    return AuthService(db)
+
+
+AuthSvc = Annotated[AuthService, Depends(get_auth_service)]
 
 LOGIN_RATE_LIMIT = 5
 LOGIN_RATE_WINDOW = 60  # seconds
@@ -110,10 +117,9 @@ def _set_auth_cookies(response: Response, access: str, refresh: str) -> None:
 
 @router.post("/register", response_model=AuthResponse, status_code=201)
 async def register(
-    body: RegisterRequest, db: Db, response: Response, request: Request
+    body: RegisterRequest, svc: AuthSvc, response: Response, request: Request
 ) -> AuthResponse:
     await _check_register_rate(request)
-    svc = AuthService(db)
     user, vault, access, refresh = await svc.register(body)
     _set_auth_cookies(response, access, refresh)
     return AuthResponse(
@@ -126,12 +132,11 @@ async def register(
 @router.post("/login", response_model=LoginResponse)
 async def login(
     body: LoginRequest,
-    db: Db,
+    svc: AuthSvc,
     response: Response,
     request: Request,
 ) -> AuthResponse | TwoFactorChallengeResponse:
     await _check_login_rate(request)
-    svc = AuthService(db)
     result = await svc.login(body)
     if result.requires_2fa:
         if not result.temp_token:
@@ -429,14 +434,12 @@ async def list_tokens(user: CurrentUser, db: Db) -> list[PatRead]:
     )
     result = await db.execute(stmt)
     pats = result.scalars().all()
-    import json
-
     return [
         PatRead(
             id=p.id,
             name=p.name,
             token_prefix=p.token_prefix,
-            scopes=json.loads(p.scopes),
+            scopes=p.scopes,
             expires_at=p.expires_at,
             last_used_at=p.last_used_at,
             created_at=p.created_at,
@@ -447,7 +450,6 @@ async def list_tokens(user: CurrentUser, db: Db) -> list[PatRead]:
 
 @router.post("/tokens", response_model=PatCreateResponse, status_code=201)
 async def create_token(body: PatCreate, user: CurrentUser, db: Db) -> PatCreateResponse:
-    import json
     from datetime import UTC, datetime, timedelta
 
     raw_token = "pat_" + secrets.token_urlsafe(32)
@@ -460,7 +462,7 @@ async def create_token(body: PatCreate, user: CurrentUser, db: Db) -> PatCreateR
         name=body.name,
         token_prefix=raw_token[:12],
         token_hash=hash_password(raw_token),
-        scopes=json.dumps(body.scopes),
+        scopes=body.scopes,
         expires_at=expires_at,
     )
     db.add(pat)

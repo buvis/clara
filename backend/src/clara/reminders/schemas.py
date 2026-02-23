@@ -1,5 +1,6 @@
 import uuid
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -27,7 +28,7 @@ class ReminderCreate(BaseModel):
     title: str
     description: str | None = None
     next_expected_date: date
-    frequency_type: str = "one_time"
+    frequency_type: Literal["one_time", "week", "month", "year"] = "one_time"
     frequency_number: int = 1
 
 
@@ -36,7 +37,7 @@ class ReminderUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
     next_expected_date: date | None = None
-    frequency_type: str | None = None
+    frequency_type: Literal["one_time", "week", "month", "year"] | None = None
     frequency_number: int | None = None
     status: str | None = None
 

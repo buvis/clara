@@ -84,7 +84,7 @@ async def update_file(
     file_id: uuid.UUID, body: FileUpdate, svc: FileSvc
 ) -> FileRead:
     return FileRead.model_validate(
-        await svc.update_file(file_id, **body.model_dump(exclude_none=True))
+        await svc.update_file(file_id, **body.model_dump(exclude_unset=True))
     )
 
 

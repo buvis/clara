@@ -5,16 +5,19 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy import delete, select
 
-from clara.base.repository import BaseRepository
 from clara.contacts.models import (
-    Address,
     Contact,
-    ContactMethod,
     ContactRelationship,
-    Pet,
     RelationshipType,
     Tag,
     contact_tags,
+)
+from clara.contacts.repository import (
+    AddressRepository,
+    ContactMethodRepository,
+    PetRepository,
+    RelationshipRepository,
+    TagRepository,
 )
 from clara.contacts.sub_schemas import (
     AddressCreate,
@@ -34,109 +37,6 @@ from clara.contacts.sub_schemas import (
 )
 from clara.deps import Db, VaultAccess
 from clara.exceptions import NotFoundError
-
-
-class ContactMethodRepository(BaseRepository[ContactMethod]):
-    model = ContactMethod
-
-    async def list_for_contact(self, contact_id: uuid.UUID) -> list[ContactMethod]:
-        stmt = (
-            self._base_query()
-            .where(ContactMethod.contact_id == contact_id)
-            .order_by(ContactMethod.created_at.desc())
-        )
-        result = await self.session.execute(stmt)
-        return list(result.scalars().all())
-
-    async def get_for_contact(
-        self, contact_id: uuid.UUID, method_id: uuid.UUID
-    ) -> ContactMethod | None:
-        stmt = self._base_query().where(
-            ContactMethod.contact_id == contact_id,
-            ContactMethod.id == method_id,
-        )
-        result = await self.session.execute(stmt)
-        return result.scalar_one_or_none()
-
-
-class AddressRepository(BaseRepository[Address]):
-    model = Address
-
-    async def list_for_contact(self, contact_id: uuid.UUID) -> list[Address]:
-        stmt = (
-            self._base_query()
-            .where(Address.contact_id == contact_id)
-            .order_by(Address.created_at.desc())
-        )
-        result = await self.session.execute(stmt)
-        return list(result.scalars().all())
-
-    async def get_for_contact(
-        self, contact_id: uuid.UUID, address_id: uuid.UUID
-    ) -> Address | None:
-        stmt = self._base_query().where(
-            Address.contact_id == contact_id,
-            Address.id == address_id,
-        )
-        result = await self.session.execute(stmt)
-        return result.scalar_one_or_none()
-
-
-class RelationshipRepository(BaseRepository[ContactRelationship]):
-    model = ContactRelationship
-
-    async def list_for_contact(
-        self, contact_id: uuid.UUID
-    ) -> list[ContactRelationship]:
-        stmt = (
-            self._base_query()
-            .where(ContactRelationship.contact_id == contact_id)
-            .order_by(ContactRelationship.created_at.desc())
-        )
-        result = await self.session.execute(stmt)
-        return list(result.scalars().all())
-
-    async def get_for_contact(
-        self, contact_id: uuid.UUID, relationship_id: uuid.UUID
-    ) -> ContactRelationship | None:
-        stmt = self._base_query().where(
-            ContactRelationship.contact_id == contact_id,
-            ContactRelationship.id == relationship_id,
-        )
-        result = await self.session.execute(stmt)
-        return result.scalar_one_or_none()
-
-
-class PetRepository(BaseRepository[Pet]):
-    model = Pet
-
-    async def list_for_contact(self, contact_id: uuid.UUID) -> list[Pet]:
-        stmt = (
-            self._base_query()
-            .where(Pet.contact_id == contact_id)
-            .order_by(Pet.created_at.desc())
-        )
-        result = await self.session.execute(stmt)
-        return list(result.scalars().all())
-
-    async def get_for_contact(
-        self, contact_id: uuid.UUID, pet_id: uuid.UUID
-    ) -> Pet | None:
-        stmt = self._base_query().where(
-            Pet.contact_id == contact_id,
-            Pet.id == pet_id,
-        )
-        result = await self.session.execute(stmt)
-        return result.scalar_one_or_none()
-
-
-class TagRepository(BaseRepository[Tag]):
-    model = Tag
-
-    async def list_all(self) -> list[Tag]:
-        stmt = self._base_query().order_by(Tag.created_at.desc())
-        result = await self.session.execute(stmt)
-        return list(result.scalars().all())
 
 
 async def _get_contact_or_404(
@@ -247,8 +147,7 @@ async def delete_contact_method(
     item = await repo.get_for_contact(contact_id, method_id)
     if item is None:
         raise NotFoundError("ContactMethod", method_id)
-    item.deleted_at = datetime.now(UTC)
-    await repo.session.flush()
+    await repo.soft_delete(item.id)
 
 
 @addresses_router.get("", response_model=list[AddressRead])
@@ -298,8 +197,7 @@ async def delete_address(
     item = await repo.get_for_contact(contact_id, address_id)
     if item is None:
         raise NotFoundError("Address", address_id)
-    item.deleted_at = datetime.now(UTC)
-    await repo.session.flush()
+    await repo.soft_delete(item.id)
 
 
 @relationships_router.get("", response_model=list[ContactRelationshipRead])
@@ -360,7 +258,7 @@ async def delete_relationship(
     relationship_type = await db.get(
         RelationshipType, relationship.relationship_type_id
     )
-    relationship.deleted_at = datetime.now(UTC)
+    await repo.soft_delete(relationship.id)
 
     if (
         relationship_type is not None
@@ -376,7 +274,7 @@ async def delete_relationship(
         now = datetime.now(UTC)
         for inverse in inverse_relationships:
             inverse.deleted_at = now
-    await repo.session.flush()
+        await repo.session.flush()
 
 
 @pets_router.get("", response_model=list[PetRead])
@@ -428,8 +326,7 @@ async def delete_pet(
     item = await repo.get_for_contact(contact_id, pet_id)
     if item is None:
         raise NotFoundError("Pet", pet_id)
-    item.deleted_at = datetime.now(UTC)
-    await repo.session.flush()
+    await repo.soft_delete(item.id)
 
 
 @contact_tags_router.get("", response_model=list[TagRead])

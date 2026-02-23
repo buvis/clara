@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -99,17 +100,17 @@ class CustomFieldDefinitionRead(BaseModel):
 
 
 class CustomFieldDefinitionCreate(BaseModel):
-    scope: str
+    scope: Literal["contact", "activity", "task"]
     name: str
     slug: str
-    data_type: str
+    data_type: Literal["text", "number", "date", "boolean", "select"]
     config_json: str | None = None
 
 
 class CustomFieldDefinitionUpdate(BaseModel):
     name: str | None = None
     slug: str | None = None
-    data_type: str | None = None
+    data_type: Literal["text", "number", "date", "boolean", "select"] | None = None
     config_json: str | None = None
 
 

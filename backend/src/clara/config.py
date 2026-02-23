@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     app_name: str = "CLARA"
     debug: bool = False
     secret_key: SecretStr
+    encryption_key: str = ""
 
     database_url: PostgresDsn
     redis_url: RedisDsn = RedisDsn("redis://localhost:6379/0")

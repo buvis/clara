@@ -1,4 +1,3 @@
-import json
 import uuid
 from datetime import UTC, datetime
 from typing import Annotated, Any
@@ -70,7 +69,7 @@ async def get_current_user(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Account deactivated",
             )
-        scopes = json.loads(pat.scopes)
+        scopes = pat.scopes
         if request.method in _WRITE_METHODS and "write" not in scopes:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

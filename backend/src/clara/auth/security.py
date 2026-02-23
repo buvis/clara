@@ -9,9 +9,9 @@ from typing import Any
 import argon2
 import bcrypt
 import jwt
-from cryptography.fernet import Fernet
 
 from clara.config import get_settings
+from clara.crypto import get_fernet
 
 _ph = argon2.PasswordHasher()
 
@@ -118,28 +118,24 @@ def decode_2fa_temp_token(token: str) -> dict[str, Any] | None:
     return _decode_token(token, "2fa_temp")
 
 
-def _derive_encryption_key() -> bytes:
+def _derive_legacy_key() -> bytes:
+    """SHA-256 of SECRET_KEY, used only for legacy XOR fallback."""
     settings = get_settings()
     return hashlib.sha256(
         settings.secret_key.get_secret_value().encode()
     ).digest()
 
 
-def _get_fernet() -> Fernet:
-    key = base64.urlsafe_b64encode(_derive_encryption_key())
-    return Fernet(key)
-
-
 def encrypt_totp_secret(secret: str) -> str:
-    return _get_fernet().encrypt(secret.encode()).decode()
+    return get_fernet().encrypt(secret.encode()).decode()
 
 
 def decrypt_totp_secret(token: str) -> str:
     # Try Fernet first, fall back to legacy XOR for migration
     try:
-        return _get_fernet().decrypt(token.encode()).decode()
+        return get_fernet().decrypt(token.encode()).decode()
     except Exception:
-        key = _derive_encryption_key()
+        key = _derive_legacy_key()
         data = base64.urlsafe_b64decode(token.encode())
         decrypted = bytes(
             byte ^ key[index % len(key)] for index, byte in enumerate(data)

@@ -40,10 +40,10 @@ def test_totp_fernet_roundtrip():
 def test_totp_xor_fallback():
     """Old XOR-encrypted secrets still decrypt via fallback."""
     import base64
-    from clara.auth.security import _derive_encryption_key
+    from clara.auth.security import _derive_legacy_key
 
     secret = "JBSWY3DPEHPK3PXP"
-    key = _derive_encryption_key()
+    key = _derive_legacy_key()
     data = secret.encode()
     xor_encrypted = base64.urlsafe_b64encode(
         bytes(b ^ key[i % len(key)] for i, b in enumerate(data))

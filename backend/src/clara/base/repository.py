@@ -50,6 +50,24 @@ class BaseRepository[ModelT: VaultScopedModel]:
         result = await self.session.execute(items_stmt)
         return result.scalars().all(), total
 
+    async def filtered_list(
+        self,
+        *filters: Any,
+        order_by: Any = None,
+        offset: int = 0,
+        limit: int = 50,
+    ) -> tuple[Sequence[ModelT], int]:
+        base = self._base_query()
+        for f in filters:
+            base = base.where(f)
+        count_stmt = select(func.count()).select_from(base.subquery())
+        total: int = (await self.session.execute(count_stmt)).scalar_one()
+        items_stmt = base.order_by(
+            order_by if order_by is not None else self.model.created_at.desc()
+        ).offset(offset).limit(limit)
+        result = await self.session.execute(items_stmt)
+        return result.scalars().all(), total
+
     async def create(self, **kwargs: Any) -> ModelT:
         obj = self.model(vault_id=self.vault_id, **kwargs)
         self.session.add(obj)
