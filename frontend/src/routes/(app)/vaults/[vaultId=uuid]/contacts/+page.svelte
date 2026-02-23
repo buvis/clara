@@ -16,6 +16,7 @@
   let showCreate = $state(false);
   let createForm = $state<ContactCreateInput>({ first_name: '', last_name: '' });
   let creating = $state(false);
+  let formError = $state('');
   let dataList: DataList<Contact>;
 
   async function loadContacts(params: { offset: number; limit: number; search: string; filter: string | null }) {
@@ -32,12 +33,15 @@
   async function handleCreate(e: SubmitEvent) {
     e.preventDefault();
     if (!createForm.first_name.trim()) return;
+    formError = '';
     creating = true;
     try {
       const contact = await contactsApi.create(vaultId, createForm);
       showCreate = false;
       createForm = { first_name: '', last_name: '' };
       goto(`/vaults/${vaultId}/contacts/${contact.id}`);
+    } catch (err) {
+      formError = err instanceof Error ? err.message : 'Something went wrong';
     } finally {
       creating = false;
     }
@@ -74,6 +78,7 @@
       <Input label="First name" bind:value={createForm.first_name} required />
       <Input label="Last name" bind:value={createForm.last_name} />
       <Input label="Nickname" bind:value={createForm.nickname} />
+      {#if formError}<p class="text-sm text-red-400">{formError}</p>{/if}
       <div class="flex justify-end gap-3">
         <Button variant="ghost" onclick={() => (showCreate = false)}>Cancel</Button>
         <Button type="submit" loading={creating}>Create</Button>
