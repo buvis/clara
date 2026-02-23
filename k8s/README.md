@@ -1,35 +1,29 @@
 # Kubernetes Deployment
 
-## Required Secrets
+Uses Kustomize (built into kubectl) to manage secrets without committing them to git.
 
-Set these environment variables before deploying:
-
-| Variable | Description |
-|----------|-------------|
-| `SECRET_KEY` | FastAPI secret key for signing tokens/cookies |
-| `DB_PASSWORD` | PostgreSQL password for the `clara` user |
-
-## Deploy with envsubst
+## Setup
 
 ```bash
-export SECRET_KEY="your-secret-key"
-export DB_PASSWORD="your-db-password"
+# Generate secrets
+cd k8s
+cp secrets.env.example secrets.env
 
-# Apply all manifests with secret substitution
-for f in secret.yml configmap.yml; do
-  envsubst < "k8s/$f" | kubectl apply -f -
-done
-
-# Apply remaining manifests (no substitution needed)
-kubectl apply -f k8s/postgres.yml
-kubectl apply -f k8s/redis.yml
-kubectl apply -f k8s/backend.yml
-kubectl apply -f k8s/worker.yml
+# Edit secrets.env with real values
+SECRET_KEY=$(openssl rand -hex 32)
+DATABASE_URL=postgresql://clara:$(openssl rand -hex 16)@postgres:5432/clara
+ENCRYPTION_KEY=$(openssl rand -hex 32)
 ```
 
-## Generate secrets
+## Deploy
 
 ```bash
-export SECRET_KEY=$(openssl rand -hex 32)
-export DB_PASSWORD=$(openssl rand -hex 16)
+kubectl apply -k k8s/
+```
+
+## Verify
+
+```bash
+kubectl -n clara get pods
+kubectl -n clara logs deploy/backend
 ```

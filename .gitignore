@@ -214,3 +214,4 @@ __marimo__/
 .local/
 .worktrees/
 backend/uploads/
+k8s/secrets.env
