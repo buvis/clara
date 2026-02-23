@@ -44,8 +44,8 @@ class NoteService:
             raise NotFoundError("Note", note_id)
         return note
 
-    async def create_note(self, data: NoteCreate) -> Note:
-        return await self.repo.create(**data.model_dump())
+    async def create_note(self, data: NoteCreate, *, created_by_id: uuid.UUID) -> Note:
+        return await self.repo.create(**data.model_dump(), created_by_id=created_by_id)
 
     async def update_note(
         self, note_id: uuid.UUID, data: NoteUpdate

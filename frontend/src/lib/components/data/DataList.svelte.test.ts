@@ -1,7 +1,7 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/svelte';
 import { createRawSnippet } from 'svelte';
 import DataList from './DataList.svelte';
-import { paginated } from '../../../tests/helpers';
+import { paginated } from '$tests/helpers';
 
 const row = createRawSnippet((item: () => { name: string }) => ({
   render: () => `<div>${item().name}</div>`

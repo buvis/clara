@@ -22,7 +22,6 @@ class NoteCreate(BaseModel):
     activity_id: uuid.UUID | None = None
     title: str = ""
     body_markdown: str = ""
-    created_by_id: uuid.UUID
 
 
 class NoteUpdate(BaseModel):

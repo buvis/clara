@@ -191,7 +191,13 @@
       Sign in
     </button>
 
-    <p class="mt-4 text-center text-sm text-neutral-400">
+    <p class="mt-3 text-center">
+      <a href="/auth/forgot-password" class="text-sm text-neutral-400 transition hover:text-brand-400">
+        Forgot password?
+      </a>
+    </p>
+
+    <p class="mt-2 text-center text-sm text-neutral-400">
       No account?
       <a href="/auth/register" class="text-brand-400 hover:text-brand-300 transition">
         Create one

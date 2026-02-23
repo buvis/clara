@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     encryption_key: str = ""
 
     database_url: PostgresDsn
+    pool_size: int = 5
+    pool_max_overflow: int = 10
     redis_url: RedisDsn = RedisDsn("redis://localhost:6379/0")
 
     jwt_algorithm: str = "HS256"

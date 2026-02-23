@@ -20,7 +20,6 @@ class ActivityRepository(BaseRepository[Activity]):
             super()
             ._base_query()
             .options(selectinload(Activity.participants))
-            .order_by(Activity.happened_at.desc())
         )
 
     async def list(
@@ -39,22 +38,27 @@ class ActivityRepository(BaseRepository[Activity]):
             base_where = base_where.where(filt)
             items_stmt = items_stmt.where(filt)
         total: int = (await self.session.execute(base_where)).scalar_one()
-        items_stmt = items_stmt.offset(offset).limit(limit)
+        items_stmt = items_stmt.order_by(Activity.happened_at.desc()).offset(offset).limit(limit)
         result = await self.session.execute(items_stmt)
         return result.scalars().all(), total
 
     async def list_by_contact(
         self, contact_id: uuid.UUID, *, offset: int = 0, limit: int = 50
-    ) -> Sequence[Activity]:
-        stmt = (
+    ) -> tuple[Sequence[Activity], int]:
+        base = (
             self._base_query()
             .join(ActivityParticipant)
             .where(ActivityParticipant.contact_id == contact_id)
+        )
+        count_stmt = select(func.count()).select_from(base.subquery())
+        total: int = (await self.session.execute(count_stmt)).scalar_one()
+        items_stmt = (
+            base.order_by(Activity.happened_at.desc())
             .offset(offset)
             .limit(limit)
         )
-        result = await self.session.execute(stmt)
-        return result.scalars().unique().all()
+        result = await self.session.execute(items_stmt)
+        return result.scalars().unique().all(), total
 
 
 class ActivityParticipantRepository(BaseRepository[ActivityParticipant]):

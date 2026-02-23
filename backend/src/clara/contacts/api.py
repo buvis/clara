@@ -3,10 +3,8 @@ from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
-from clara.activities.models import Activity, ActivityParticipant
+from clara.activities.repository import ActivityRepository
 from clara.activities.schemas import ActivityRead
 from clara.base.schema import PaginatedResponse, PaginationMeta
 from clara.contacts.repository import ContactRepository
@@ -94,27 +92,10 @@ async def list_contact_activities(
     _access: VaultAccess,
     pagination: PaginationParams = Depends(),
 ) -> PaginatedResponse[ActivityRead]:
-    base = (
-        select(Activity)
-        .join(ActivityParticipant, ActivityParticipant.activity_id == Activity.id)
-        .where(
-            Activity.vault_id == vault_id,
-            Activity.deleted_at.is_(None),
-            ActivityParticipant.contact_id == contact_id,
-        )
+    repo = ActivityRepository(session=db, vault_id=vault_id)
+    items, total = await repo.list_by_contact(
+        contact_id, offset=pagination.offset, limit=pagination.limit
     )
-    from sqlalchemy import func
-
-    total = (
-        await db.execute(select(func.count()).select_from(base.subquery()))
-    ).scalar_one()
-    stmt = (
-        base.options(selectinload(Activity.participants))
-        .offset(pagination.offset)
-        .limit(pagination.limit)
-        .order_by(Activity.happened_at.desc())
-    )
-    items = (await db.execute(stmt)).scalars().all()
     return PaginatedResponse(
         items=[ActivityRead.model_validate(a) for a in items],
         meta=PaginationMeta(

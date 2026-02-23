@@ -58,8 +58,9 @@ async def get_note(note_id: uuid.UUID, svc: NoteSvc) -> NoteRead:
 
 @router.post("", response_model=NoteRead, status_code=201)
 async def create_note(body: NoteCreate, svc: NoteSvc, user: CurrentUser) -> NoteRead:
-    data = body.model_copy(update={"created_by_id": user.id})
-    return NoteRead.model_validate(await svc.create_note(data))
+    return NoteRead.model_validate(
+        await svc.create_note(body, created_by_id=user.id)
+    )
 
 
 @router.patch("/{note_id}", response_model=NoteRead)

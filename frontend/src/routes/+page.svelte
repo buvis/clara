@@ -3,23 +3,30 @@
   import { auth } from '$state/auth.svelte';
   import Spinner from '$components/ui/Spinner.svelte';
 
+  let resolved = false;
+
   $effect(() => {
     resolve();
   });
 
   async function resolve() {
+    if (resolved) return;
+
     try {
       await auth.fetchMe();
     } catch {
+      resolved = true;
       goto('/auth/login');
       return;
     }
 
     if (!auth.isAuthenticated) {
+      resolved = true;
       goto('/auth/login');
       return;
     }
 
+    resolved = true;
     goto('/vaults');
   }
 </script>

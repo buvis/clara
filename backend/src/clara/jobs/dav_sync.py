@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 
 import redis
 import structlog
+from sqlalchemy import select
 
 from clara.config import get_settings
 from clara.dav_sync.client import DavClient
@@ -102,8 +103,10 @@ def schedule_dav_syncs() -> None:
     try:
         now = datetime.now(UTC)
         accounts = (
-            session.query(DavSyncAccount)
-            .filter(DavSyncAccount.deleted_at.is_(None))
+            session.execute(
+                select(DavSyncAccount).where(DavSyncAccount.deleted_at.is_(None))
+            )
+            .scalars()
             .all()
         )
         for account in accounts:

@@ -66,7 +66,7 @@ class ActivityService:
         *,
         offset: int = 0,
         limit: int = 50,
-    ) -> Sequence[Activity]:
+    ) -> tuple[Sequence[Activity], int]:
         return await self.repo.list_by_contact(
             contact_id, offset=offset, limit=limit
         )

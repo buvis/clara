@@ -103,8 +103,9 @@
             <Button size="sm" variant="ghost" onclick={() => (editId = null)}>Cancel</Button>
           </form>
         {:else}
+          {@const Icon = typeIcon(item.type)}
           <div class="group flex items-center gap-2 text-sm">
-            <svelte:component this={typeIcon(item.type)} size={14} class="shrink-0 text-neutral-500" />
+            <Icon size={14} class="shrink-0 text-neutral-500" />
             <button onclick={() => startEdit(item)} class="min-w-0 flex-1 truncate text-left text-neutral-200 hover:text-white">
               {item.value}
             </button>

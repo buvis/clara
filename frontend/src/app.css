@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
-
 @theme {
   --color-brand-50: oklch(0.97 0.02 175);
   --color-brand-100: oklch(0.93 0.04 175);

@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 
 import redis
 import structlog
+from sqlalchemy import select
 
 from clara.config import get_settings
 from clara.git_sync.git_ops import GitRepo
@@ -85,11 +86,13 @@ def schedule_git_syncs() -> None:
     try:
         now = datetime.now(UTC)
         configs = (
-            session.query(GitSyncConfig)
-            .filter(
-                GitSyncConfig.deleted_at.is_(None),
-                GitSyncConfig.enabled.is_(True),
+            session.execute(
+                select(GitSyncConfig).where(
+                    GitSyncConfig.deleted_at.is_(None),
+                    GitSyncConfig.enabled.is_(True),
+                )
             )
+            .scalars()
             .all()
         )
         for config in configs:

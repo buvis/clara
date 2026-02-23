@@ -32,7 +32,7 @@
   <!-- Main area -->
   <div class="flex flex-1 flex-col overflow-hidden">
     <Topbar ontogglesidebar={() => (sidebarOpen = !sidebarOpen)} />
-    <main class="flex-1 overflow-y-auto p-4 lg:p-6">
+    <main class="flex-1 overflow-y-auto p-4 pb-16 lg:p-6 lg:pb-6">
       {@render children()}
     </main>
   </div>
