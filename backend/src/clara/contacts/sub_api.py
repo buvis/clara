@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, datetime
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -271,10 +271,8 @@ async def delete_relationship(
             == relationship_type.inverse_type_id,
         )
         inverse_relationships = (await db.execute(inverse_stmt)).scalars().all()
-        now = datetime.now(UTC)
         for inverse in inverse_relationships:
-            inverse.deleted_at = now
-        await repo.session.flush()
+            await repo.soft_delete(inverse.id)
 
 
 @pets_router.get("", response_model=list[PetRead])
