@@ -1,6 +1,8 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { auth } from '$state/auth.svelte';
+  import Button from '$components/ui/Button.svelte';
+  import Input from '$components/ui/Input.svelte';
 
   let email = $state('');
   let password = $state('');
@@ -81,34 +83,17 @@
       </div>
     {/if}
 
-    <div>
-      <label for="two-factor-code" class="mb-1.5 block text-sm font-medium text-neutral-300">
-        {twoFactorMode === 'recovery' ? 'Recovery code' : 'Authenticator code'}
-      </label>
-      <input
-        id="two-factor-code"
-        type="text"
-        bind:value={twoFactorCode}
-        required
-        autocomplete="one-time-code"
-        class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-        placeholder={twoFactorMode === 'recovery' ? '8-character code' : '123456'}
-      />
-    </div>
+    <Input
+      label={twoFactorMode === 'recovery' ? 'Recovery code' : 'Authenticator code'}
+      bind:value={twoFactorCode}
+      required
+      autocomplete="one-time-code"
+      placeholder={twoFactorMode === 'recovery' ? '8-character code' : '123456'}
+    />
 
-    <button
-      type="submit"
-      disabled={verifying}
-      class="mt-6 flex w-full items-center justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-400 disabled:opacity-50"
-    >
-      {#if verifying}
-        <svg class="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25" />
-          <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" class="opacity-75" />
-        </svg>
-      {/if}
+    <Button type="submit" loading={verifying} class="mt-6 w-full">
       Verify
-    </button>
+    </Button>
 
     <div class="mt-4 flex items-center justify-between text-sm text-neutral-400">
       <button
@@ -146,50 +131,13 @@
     {/if}
 
     <div class="space-y-4">
-      <div>
-        <label for="email" class="mb-1.5 block text-sm font-medium text-neutral-300">
-          Email
-        </label>
-        <input
-          id="email"
-          type="email"
-          bind:value={email}
-          required
-          autocomplete="email"
-          class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-          placeholder="you@example.com"
-        />
-      </div>
-
-      <div>
-        <label for="password" class="mb-1.5 block text-sm font-medium text-neutral-300">
-          Password
-        </label>
-        <input
-          id="password"
-          type="password"
-          bind:value={password}
-          required
-          autocomplete="current-password"
-          class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-          placeholder="********"
-        />
-      </div>
+      <Input label="Email" type="email" bind:value={email} required autocomplete="email" placeholder="you@example.com" />
+      <Input label="Password" type="password" bind:value={password} required autocomplete="current-password" placeholder="********" />
     </div>
 
-    <button
-      type="submit"
-      disabled={submitting}
-      class="mt-6 flex w-full items-center justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-400 disabled:opacity-50"
-    >
-      {#if submitting}
-        <svg class="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25" />
-          <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" class="opacity-75" />
-        </svg>
-      {/if}
+    <Button type="submit" loading={submitting} class="mt-6 w-full">
       Sign in
-    </button>
+    </Button>
 
     <p class="mt-3 text-center">
       <a href="/auth/forgot-password" class="text-sm text-neutral-400 transition hover:text-brand-400">

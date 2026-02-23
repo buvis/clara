@@ -1,6 +1,8 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { api } from '$api/client';
+  import Button from '$components/ui/Button.svelte';
+  import Input from '$components/ui/Input.svelte';
 
   const token = $derived(page.url.searchParams.get('token') ?? '');
   const tokenMissing = $derived(!token);
@@ -56,37 +58,11 @@
     </div>
   {/if}
 
-  <div class="space-y-4">
-    <div>
-      <label for="password" class="mb-1.5 block text-sm font-medium text-neutral-300">
-        New password
-      </label>
-      <input
-        id="password"
-        type="password"
-        bind:value={password}
-        required
-        minlength="8"
-        autocomplete="new-password"
-        class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white placeholder-neutral-500 outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
-        placeholder="Min 8 characters"
-      />
-    </div>
-  </div>
+  <Input label="New password" type="password" bind:value={password} required minlength={8} autocomplete="new-password" placeholder="Min 8 characters" />
 
-  <button
-    type="submit"
-    disabled={submitting || tokenMissing}
-    class="mt-6 flex w-full items-center justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-brand-400 disabled:opacity-50"
-  >
-    {#if submitting}
-      <svg class="mr-2 h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25" />
-        <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" class="opacity-75" />
-      </svg>
-    {/if}
+  <Button type="submit" loading={submitting} disabled={tokenMissing} class="mt-6 w-full">
     Reset password
-  </button>
+  </Button>
 
   <p class="mt-4 text-center text-sm text-neutral-400">
     Remembered your password?
