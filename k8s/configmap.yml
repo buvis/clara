@@ -4,7 +4,7 @@ metadata:
   name: clara-config
   namespace: clara
 data:
-  DATABASE_URL: postgresql://clara:changeme@postgres:5432/clara
+  DATABASE_URL: "postgresql://clara:${DB_PASSWORD}@postgres:5432/clara"
   REDIS_URL: redis://redis:6379/0
   CORS_ORIGINS: '[]'
   COOKIE_SECURE: "true"

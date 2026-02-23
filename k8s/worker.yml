@@ -17,8 +17,25 @@ spec:
         - name: worker
           image: clara-backend:latest
           command: ["uv", "run", "python", "-m", "clara.worker"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
           envFrom:
             - configMapRef:
                 name: clara-config
             - secretRef:
                 name: clara-secret
+          readinessProbe:
+            exec:
+              command: ["pgrep", "-f", "clara.worker"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command: ["pgrep", "-f", "clara.worker"]
+            initialDelaySeconds: 10
+            periodSeconds: 30
