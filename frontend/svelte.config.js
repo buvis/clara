@@ -9,7 +9,8 @@ const config = {
     alias: {
       $api: 'src/lib/api',
       $state: 'src/lib/state',
-      $components: 'src/lib/components'
+      $components: 'src/lib/components',
+      $tests: 'src/tests'
     }
   }
 };

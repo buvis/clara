@@ -5,8 +5,14 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   plugins: [tailwindcss(), sveltekit()],
   test: {
-    passWithNoTests: true
+    environment: 'jsdom',
+    setupFiles: ['src/tests/setup.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.svelte.test.ts'],
+    globals: true
   },
+  resolve: process.env.VITEST
+    ? { conditions: ['browser'] }
+    : undefined,
   server: {
     proxy: {
       '/api': {
