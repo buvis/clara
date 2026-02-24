@@ -141,7 +141,7 @@ class VaultSettingsRead(BaseModel):
     date_format: str
     time_format: str
     timezone: str
-    feature_flags: dict
+    feature_flags: dict[str, bool]
 
 
 class VaultSettingsUpdate(BaseModel):
@@ -149,4 +149,4 @@ class VaultSettingsUpdate(BaseModel):
     date_format: str | None = None
     time_format: str | None = None
     timezone: str | None = None
-    feature_flags: dict | None = None
+    feature_flags: dict[str, bool] | None = None

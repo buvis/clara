@@ -31,7 +31,7 @@ async def test_import_csv(db_session: AsyncSession):
     vault_id = uuid.uuid4()
     csv_data = "first_name,last_name,nickname\nAlice,Smith,Ali\nBob,Jones,\n"
 
-    created = await import_csv(db_session, vault_id, csv_data)
+    created, errors = await import_csv(db_session, vault_id, csv_data)
 
     assert len(created) == 2
     assert created[0].first_name == "Alice"
@@ -43,7 +43,7 @@ async def test_import_csv_skips_missing_first_name(db_session: AsyncSession):
     vault_id = uuid.uuid4()
     csv_data = "first_name,last_name\n,Smith\nBob,Jones\n"
 
-    created = await import_csv(db_session, vault_id, csv_data)
+    created, errors = await import_csv(db_session, vault_id, csv_data)
 
     assert len(created) == 1
     assert created[0].first_name == "Bob"
@@ -58,7 +58,7 @@ async def test_roundtrip(db_session: AsyncSession):
     exported = await export_csv(db_session, vault_id)
 
     vault_id2 = uuid.uuid4()
-    imported = await import_csv(db_session, vault_id2, exported)
+    imported, errors = await import_csv(db_session, vault_id2, exported)
 
     assert len(imported) == 2
     imported_names = {(c.first_name, c.last_name) for c in imported}

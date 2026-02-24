@@ -46,9 +46,28 @@ def fake_redis(monkeypatch: pytest.MonkeyPatch) -> None:
         def exists(self, key: str) -> int:
             return 1 if key in store else 0
 
+    class FakeAsyncRedis:
+        async def incr(self, key: str) -> int:
+            val = int(store.get(key, 0)) + 1
+            store[key] = val
+            return val
+
+        async def expire(self, key: str, _: int) -> bool:
+            store.setdefault(key, 0)
+            return True
+
+        async def setex(self, key: str, _ttl: int, value: str) -> bool:
+            store[key] = value
+            return True
+
+        async def exists(self, key: str) -> int:
+            return 1 if key in store else 0
+
     fake = FakeRedis()
+    fake_async = FakeAsyncRedis()
     monkeypatch.setattr("clara.redis.get_redis", lambda: fake)
-    monkeypatch.setattr("clara.auth.api.get_redis", lambda: fake)
+    monkeypatch.setattr("clara.redis.get_async_redis", lambda: fake_async)
+    monkeypatch.setattr("clara.auth.api.get_async_redis", lambda: fake_async)
 
 
 def _import_model_modules() -> None:

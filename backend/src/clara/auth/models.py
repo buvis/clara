@@ -73,7 +73,7 @@ class PersonalAccessToken(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(255))
     token_prefix: Mapped[str] = mapped_column(String(12))
     token_hash: Mapped[str] = mapped_column(Text)
-    scopes: Mapped[list] = mapped_column(
+    scopes: Mapped[list[str]] = mapped_column(
         JSON, default=list, server_default='["read","write"]'
     )
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -91,7 +91,7 @@ class VaultSettings(TimestampMixin, Base):
     date_format: Mapped[str] = mapped_column(String(20), default="YYYY-MM-DD")
     time_format: Mapped[str] = mapped_column(String(5), default="24h")
     timezone: Mapped[str] = mapped_column(String(50), default="UTC")
-    feature_flags: Mapped[dict] = mapped_column(
+    feature_flags: Mapped[dict[str, bool]] = mapped_column(
         JSON,
         default=dict,
         server_default='{"debts":true,"gifts":true,"pets":true,"journal":true}',

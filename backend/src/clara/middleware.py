@@ -52,7 +52,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
 
 def generate_csrf_token(session_token: str) -> str:
     """Generate CSRF token HMAC'd with session token."""
-    secret = get_settings().secret_key.encode()
+    secret = get_settings().secret_key.get_secret_value().encode()
     random_part = secrets.token_urlsafe(32)
     sig = hmac.new(
         secret,
@@ -68,7 +68,7 @@ def _verify_csrf_token(csrf_token: str, session_token: str) -> bool:
     if len(parts) != 2:
         return False
     random_part, sig = parts
-    secret = get_settings().secret_key.encode()
+    secret = get_settings().secret_key.get_secret_value().encode()
     expected = hmac.new(
         secret,
         f"{random_part}:{session_token}".encode(),
@@ -80,7 +80,9 @@ def _verify_csrf_token(csrf_token: str, session_token: str) -> bool:
 class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
     """Reject requests whose Content-Length exceeds configured limits."""
 
-    async def dispatch(self, request: Request, call_next):
+    async def dispatch(
+        self, request: Request, call_next: RequestResponseEndpoint
+    ) -> Response:
         settings = get_settings()
         content_length = request.headers.get("content-length")
         if content_length is not None:

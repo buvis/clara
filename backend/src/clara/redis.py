@@ -37,4 +37,5 @@ async def blacklist_token(jti: str, ttl_seconds: int) -> None:
 
 
 async def is_token_blacklisted(jti: str) -> bool:
-    return await get_async_redis().exists(f"blacklist:{jti}") > 0
+    result: int = await get_async_redis().exists(f"blacklist:{jti}")
+    return result > 0

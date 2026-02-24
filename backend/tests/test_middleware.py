@@ -2,10 +2,9 @@ import pytest
 from httpx import AsyncClient
 
 from clara.auth.models import User, Vault
+from clara.middleware import generate_csrf_token
 
 pytestmark = pytest.mark.asyncio
-
-CSRF_TOKEN = "test-csrf-token-value"
 
 
 @pytest.fixture()
@@ -33,8 +32,10 @@ async def test_mutating_with_cookie_no_csrf_rejected(
 async def test_mutating_with_cookie_and_csrf_allowed(
     cookie_client: AsyncClient, vault: Vault
 ):
-    cookie_client.cookies.set("csrf_token", CSRF_TOKEN)
-    cookie_client.headers["x-csrf-token"] = CSRF_TOKEN
+    access_token = cookie_client.cookies.get("access_token", "")
+    csrf_token = generate_csrf_token(access_token)
+    cookie_client.cookies.set("csrf_token", csrf_token)
+    cookie_client.headers["x-csrf-token"] = csrf_token
     resp = await cookie_client.post(
         f"/api/v1/vaults/{vault.id}/contacts",
         json={"first_name": "Alice"},

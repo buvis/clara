@@ -16,7 +16,7 @@ async def test_debt_crud(authenticated_client: AsyncClient, vault: Vault):
         f"/api/v1/vaults/{vault.id}/debts",
         json={
             "contact_id": contact_id,
-            "direction": "owed",
+            "direction": "owed_to_you",
             "amount": "50.00",
         },
     )
