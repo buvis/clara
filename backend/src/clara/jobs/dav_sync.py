@@ -94,6 +94,7 @@ def sync_dav_account(account_id: str) -> None:
 def schedule_dav_syncs() -> None:
     """Check which DAV accounts are due for sync and enqueue them."""
     import rq
+    from rq import Retry
 
     settings = get_settings()
     r = redis.Redis.from_url(str(settings.redis_url))
@@ -111,10 +112,18 @@ def schedule_dav_syncs() -> None:
         )
         for account in accounts:
             if account.last_synced_at is None:
-                q.enqueue(sync_dav_account, str(account.id))
+                q.enqueue(
+                    sync_dav_account,
+                    str(account.id),
+                    retry=Retry(max=3, interval=[10, 30, 60]),
+                )
                 continue
             elapsed = (now - account.last_synced_at).total_seconds() / 60
             if elapsed >= account.sync_interval_minutes:
-                q.enqueue(sync_dav_account, str(account.id))
+                q.enqueue(
+                    sync_dav_account,
+                    str(account.id),
+                    retry=Retry(max=3, interval=[10, 30, 60]),
+                )
     finally:
         session.close()

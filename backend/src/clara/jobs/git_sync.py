@@ -77,6 +77,7 @@ def run_git_sync(config_id: str) -> None:
 def schedule_git_syncs() -> None:
     """Check which git sync configs are due and enqueue them."""
     import rq
+    from rq import Retry
 
     settings = get_settings()
     r = redis.Redis.from_url(str(settings.redis_url))
@@ -97,10 +98,18 @@ def schedule_git_syncs() -> None:
         )
         for config in configs:
             if config.last_sync_at is None:
-                q.enqueue(run_git_sync, str(config.id))
+                q.enqueue(
+                    run_git_sync,
+                    str(config.id),
+                    retry=Retry(max=3, interval=[10, 30, 60]),
+                )
                 continue
             elapsed = (now - config.last_sync_at).total_seconds() / 60
             if elapsed >= config.sync_interval_minutes:
-                q.enqueue(run_git_sync, str(config.id))
+                q.enqueue(
+                    run_git_sync,
+                    str(config.id),
+                    retry=Retry(max=3, interval=[10, 30, 60]),
+                )
     finally:
         session.close()

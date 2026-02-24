@@ -31,7 +31,7 @@ async def import_csv_endpoint(
 ) -> dict[str, int]:
     data = (await file.read()).decode("utf-8")
     mapping = json.loads(field_map) if field_map else None
-    contacts = await import_csv(db, vault_id, data, field_map=mapping)
+    contacts, _errors = await import_csv(db, vault_id, data, field_map=mapping)
     return {"imported": len(contacts)}
 
 

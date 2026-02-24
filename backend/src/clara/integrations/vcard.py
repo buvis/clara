@@ -9,6 +9,8 @@ from clara.contacts.models import Address, Contact, ContactMethod
 from clara.contacts.repository import ContactRepository
 from clara.dav_sync.converters.contact import contact_to_vcard, vcard_to_contact_data
 
+EXPORT_LIMIT = 100_000  # practical upper bound for single-file export
+
 
 async def import_vcard(
     session: AsyncSession, vault_id: uuid.UUID, vcard_data: str
@@ -37,7 +39,7 @@ async def import_vcard(
 
 async def export_vcard(session: AsyncSession, vault_id: uuid.UUID) -> str:
     repo = ContactRepository(session=session, vault_id=vault_id)
-    contacts, _ = await repo.list(offset=0, limit=100000)
+    contacts, _ = await repo.list(offset=0, limit=EXPORT_LIMIT)
     output_parts: list[str] = []
 
     for contact in contacts:

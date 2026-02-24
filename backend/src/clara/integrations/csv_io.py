@@ -14,6 +14,7 @@ DEFAULT_FIELD_MAP = {
     "gender": "gender",
     "pronouns": "pronouns",
 }
+EXPORT_LIMIT = 100_000  # practical upper bound for single-file export
 
 
 async def import_csv(
@@ -21,10 +22,11 @@ async def import_csv(
     vault_id: uuid.UUID,
     csv_data: str,
     field_map: dict[str, str] | None = None,
-) -> list[Contact]:
+) -> tuple[list[Contact], list[str]]:
     mapping = field_map or DEFAULT_FIELD_MAP
     repo = ContactRepository(session=session, vault_id=vault_id)
     created: list[Contact] = []
+    errors: list[str] = []
 
     reader = csv.DictReader(io.StringIO(csv_data))
     for row in reader:
@@ -37,17 +39,20 @@ async def import_csv(
         if not kwargs.get("first_name"):
             continue
 
-        contact = await repo.create(**kwargs)
-        created.append(contact)
+        try:
+            contact = await repo.create(**kwargs)
+            created.append(contact)
+        except Exception as exc:
+            errors.append(f"Row {reader.line_num}: {exc}")
 
-    return created
+    return created, errors
 
 
 async def export_csv(
     session: AsyncSession, vault_id: uuid.UUID
 ) -> str:
     repo = ContactRepository(session=session, vault_id=vault_id)
-    contacts, _ = await repo.list(offset=0, limit=100000)
+    contacts, _ = await repo.list(offset=0, limit=EXPORT_LIMIT)
 
     columns = [
         "first_name",
