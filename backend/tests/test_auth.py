@@ -173,6 +173,7 @@ async def test_register_rate_limited(client: AsyncClient):
                 "name": f"Rate Limit {i}",
             },
         )
+        client.cookies.clear()
 
     resp = await client.post(
         "/api/v1/auth/register",
