@@ -105,7 +105,7 @@ def _set_auth_cookies(response: Response, access: str, refresh: str) -> None:
     # CSRF token — readable by JS (httponly=False)
     response.set_cookie(
         key="csrf_token",
-        value=generate_csrf_token(),
+        value=generate_csrf_token(access),
         max_age=settings.access_token_expire_minutes * 60,
         httponly=False,
         secure=settings.cookie_secure,

@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class TaskRead(BaseModel):
@@ -26,7 +26,7 @@ class TaskCreate(BaseModel):
     description: str | None = None
     due_date: date | None = None
     status: Literal["pending", "in_progress", "done"] = "pending"
-    priority: int = 0
+    priority: int = Field(default=0, ge=0, le=3)
     contact_id: uuid.UUID | None = None
     activity_id: uuid.UUID | None = None
 
@@ -36,6 +36,6 @@ class TaskUpdate(BaseModel):
     description: str | None = None
     due_date: date | None = None
     status: Literal["pending", "in_progress", "done"] | None = None
-    priority: int | None = None
+    priority: int | None = Field(default=None, ge=0, le=3)
     contact_id: uuid.UUID | None = None
     activity_id: uuid.UUID | None = None

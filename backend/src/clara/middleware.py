@@ -1,9 +1,13 @@
+import hashlib
+import hmac
 import secrets
 
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
+
+from clara.config import get_settings
 
 CSRF_COOKIE = "csrf_token"
 CSRF_HEADER = "x-csrf-token"
@@ -31,7 +35,12 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         csrf_cookie = request.cookies.get(CSRF_COOKIE)
         csrf_header = request.headers.get(CSRF_HEADER)
 
-        if not csrf_cookie or not csrf_header or csrf_cookie != csrf_header:
+        if (
+            not csrf_cookie
+            or not csrf_header
+            or csrf_cookie != csrf_header
+            or not _verify_csrf_token(csrf_header, access_cookie)
+        ):
             return Response(
                 content='{"detail":"CSRF token missing or invalid"}',
                 status_code=403,
@@ -41,16 +50,37 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
-def generate_csrf_token() -> str:
-    return secrets.token_urlsafe(32)
+def generate_csrf_token(session_token: str) -> str:
+    """Generate CSRF token HMAC'd with session token."""
+    secret = get_settings().secret_key.encode()
+    random_part = secrets.token_urlsafe(32)
+    sig = hmac.new(
+        secret,
+        f"{random_part}:{session_token}".encode(),
+        hashlib.sha256,
+    ).hexdigest()[:16]
+    return f"{random_part}.{sig}"
+
+
+def _verify_csrf_token(csrf_token: str, session_token: str) -> bool:
+    """Verify CSRF token was generated for this session."""
+    parts = csrf_token.split(".", 1)
+    if len(parts) != 2:
+        return False
+    random_part, sig = parts
+    secret = get_settings().secret_key.encode()
+    expected = hmac.new(
+        secret,
+        f"{random_part}:{session_token}".encode(),
+        hashlib.sha256,
+    ).hexdigest()[:16]
+    return hmac.compare_digest(sig, expected)
 
 
 class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
     """Reject requests whose Content-Length exceeds configured limits."""
 
     async def dispatch(self, request: Request, call_next):
-        from clara.config import get_settings
-
         settings = get_settings()
         content_length = request.headers.get("content-length")
         if content_length is not None:
