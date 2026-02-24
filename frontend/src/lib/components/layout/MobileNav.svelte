@@ -27,7 +27,7 @@
   }
 </script>
 
-<nav class="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-800 bg-neutral-900 safe-area-pb">
+<nav class="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-800 bg-neutral-900" style="padding-bottom: env(safe-area-inset-bottom, 0px)">
   <div class="flex items-center justify-around py-2">
     {#each items as item}
       {@const active = isActive(item.path)}

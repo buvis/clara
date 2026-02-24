@@ -1,8 +1,8 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte';
+  import type { Snippet, Component } from 'svelte';
 
   interface Props {
-    icon?: any;
+    icon?: Component<{ size?: number }>;
     title: string;
     description?: string;
     action?: Snippet;

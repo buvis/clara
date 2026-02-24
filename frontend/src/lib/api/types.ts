@@ -10,8 +10,6 @@ export type {
   Vault,
   VaultSettings,
   Contact,
-  ContactCreate,
-  ContactUpdate,
   ActivityType,
   Activity,
   Note,
