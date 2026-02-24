@@ -17,6 +17,7 @@
   import Input from '$components/ui/Input.svelte';
   import Modal from '$components/ui/Modal.svelte';
   import Badge from '$components/ui/Badge.svelte';
+  import Textarea from '$components/ui/Textarea.svelte';
   import { Star, Pencil, Trash2, ArrowLeft, Camera } from 'lucide-svelte';
   import { filesApi } from '$api/files';
   import type { Contact, Activity, Task, Note, Gift, Debt } from '$lib/types/models';
@@ -53,6 +54,8 @@
   let tabGifts = $state<Gift[]>([]);
   let tabDebts = $state<Debt[]>([]);
   let tabLoading = $state(false);
+  const TAB_LIMIT = 20;
+  let tabTotals = $state<Record<string, number>>({});
 
   $effect(() => {
     loading = true;
@@ -68,24 +71,31 @@
     })();
   });
 
-  $effect(() => {
+  function loadTab(tab: string, append = false) {
     if (!contact) return;
     tabLoading = true;
     const base = `/vaults/${vaultId}`;
     const cid = `contact_id=${contactId}`;
-    if (activeTab === 'activities') {
-      api.get<PaginatedResponse<Activity>>(`${base}/contacts/${contactId}/activities?limit=50`).then((r) => { tabActivities = r.items; tabLoading = false; });
-    } else if (activeTab === 'tasks') {
-      api.get<PaginatedResponse<Task>>(`${base}/tasks?${cid}&limit=50`).then((r) => { tabTasks = r.items; tabLoading = false; });
-    } else if (activeTab === 'notes') {
-      notesApi.forContact(vaultId, contactId, { limit: 50 }).then((r) => { tabNotes = r.items; tabLoading = false; });
-    } else if (activeTab === 'gifts') {
-      api.get<PaginatedResponse<Gift>>(`${base}/gifts?${cid}&limit=50`).then((r) => { tabGifts = r.items; tabLoading = false; });
-    } else if (activeTab === 'debts') {
-      api.get<PaginatedResponse<Debt>>(`${base}/debts?${cid}&limit=50`).then((r) => { tabDebts = r.items; tabLoading = false; });
+    const offset = append ? { activities: tabActivities, tasks: tabTasks, notes: tabNotes, gifts: tabGifts, debts: tabDebts }[tab]?.length ?? 0 : 0;
+    const lim = `limit=${TAB_LIMIT}&offset=${offset}`;
+    if (tab === 'activities') {
+      api.get<PaginatedResponse<Activity>>(`${base}/contacts/${contactId}/activities?${lim}`).then((r) => { tabActivities = append ? [...tabActivities, ...r.items] : r.items; tabTotals.activities = r.meta.total; tabLoading = false; });
+    } else if (tab === 'tasks') {
+      api.get<PaginatedResponse<Task>>(`${base}/tasks?${cid}&${lim}`).then((r) => { tabTasks = append ? [...tabTasks, ...r.items] : r.items; tabTotals.tasks = r.meta.total; tabLoading = false; });
+    } else if (tab === 'notes') {
+      notesApi.forContact(vaultId, contactId, { limit: TAB_LIMIT, offset }).then((r) => { tabNotes = append ? [...tabNotes, ...r.items] : r.items; tabTotals.notes = r.meta.total; tabLoading = false; });
+    } else if (tab === 'gifts') {
+      api.get<PaginatedResponse<Gift>>(`${base}/gifts?${cid}&${lim}`).then((r) => { tabGifts = append ? [...tabGifts, ...r.items] : r.items; tabTotals.gifts = r.meta.total; tabLoading = false; });
+    } else if (tab === 'debts') {
+      api.get<PaginatedResponse<Debt>>(`${base}/debts?${cid}&${lim}`).then((r) => { tabDebts = append ? [...tabDebts, ...r.items] : r.items; tabTotals.debts = r.meta.total; tabLoading = false; });
     } else {
       tabLoading = false;
     }
+  }
+
+  $effect(() => {
+    if (!contact) return;
+    loadTab(activeTab);
   });
 
   function openEdit() {
@@ -247,6 +257,9 @@
               </div>
             {/each}
           </div>
+          {#if tabActivities.length < (tabTotals.activities ?? 0)}
+            <button onclick={() => loadTab('activities', true)} class="mt-3 w-full text-center text-sm text-brand-400 hover:underline">Load more</button>
+          {/if}
         {/if}
 
       {:else if activeTab === 'tasks'}
@@ -261,6 +274,9 @@
               </div>
             {/each}
           </div>
+          {#if tabTasks.length < (tabTotals.tasks ?? 0)}
+            <button onclick={() => loadTab('tasks', true)} class="mt-3 w-full text-center text-sm text-brand-400 hover:underline">Load more</button>
+          {/if}
         {/if}
 
       {:else if activeTab === 'notes'}
@@ -276,6 +292,9 @@
               </div>
             {/each}
           </div>
+          {#if tabNotes.length < (tabTotals.notes ?? 0)}
+            <button onclick={() => loadTab('notes', true)} class="mt-3 w-full text-center text-sm text-brand-400 hover:underline">Load more</button>
+          {/if}
         {/if}
 
       {:else if activeTab === 'gifts'}
@@ -290,6 +309,9 @@
               </div>
             {/each}
           </div>
+          {#if tabGifts.length < (tabTotals.gifts ?? 0)}
+            <button onclick={() => loadTab('gifts', true)} class="mt-3 w-full text-center text-sm text-brand-400 hover:underline">Load more</button>
+          {/if}
         {/if}
 
       {:else if activeTab === 'debts'}
@@ -307,6 +329,9 @@
               </div>
             {/each}
           </div>
+          {#if tabDebts.length < (tabTotals.debts ?? 0)}
+            <button onclick={() => loadTab('debts', true)} class="mt-3 w-full text-center text-sm text-brand-400 hover:underline">Load more</button>
+          {/if}
         {/if}
       {/if}
     </div>
@@ -321,10 +346,7 @@
         <Input label="Birthdate" type="date" bind:value={editForm.birthdate} />
         <Input label="Gender" bind:value={editForm.gender} />
         <Input label="Pronouns" bind:value={editForm.pronouns} />
-        <div>
-          <label class="mb-1 block text-sm font-medium text-neutral-300">Notes summary</label>
-          <textarea bind:value={editForm.notes_summary} rows="3" class="w-full rounded-lg border border-neutral-700 bg-neutral-800 px-3 py-2 text-sm text-white outline-none transition focus:border-brand-500 focus:ring-1 focus:ring-brand-500"></textarea>
-        </div>
+        <Textarea label="Notes summary" bind:value={editForm.notes_summary} rows={3} />
         <div class="flex justify-end gap-3">
           <Button variant="ghost" onclick={() => (showEdit = false)}>Cancel</Button>
           <Button type="submit" loading={saving}>Save</Button>

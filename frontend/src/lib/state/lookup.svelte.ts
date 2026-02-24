@@ -1,5 +1,5 @@
 import { api } from '$api/client';
-import type { Contact, ActivityType } from '$api/types';
+import type { Contact, Activity, ActivityType } from '$api/types';
 import type { PaginatedResponse } from '$lib/types/common';
 
 interface ContactLookup {
@@ -7,10 +7,17 @@ interface ContactLookup {
   name: string;
 }
 
+interface ActivityLookup {
+  id: string;
+  title: string;
+}
+
 class LookupState {
   contacts = $state<ContactLookup[]>([]);
+  activities = $state<ActivityLookup[]>([]);
   activityTypes = $state<ActivityType[]>([]);
   private contactsVaultId: string | null = null;
+  private activitiesVaultId: string | null = null;
   private activityTypesVaultId: string | null = null;
 
   async loadContacts(vaultId: string): Promise<void> {
@@ -26,6 +33,22 @@ class LookupState {
       this.contactsVaultId = vaultId;
     } catch {
       this.contacts = [];
+    }
+  }
+
+  async loadActivities(vaultId: string): Promise<void> {
+    if (this.activitiesVaultId === vaultId) return;
+    try {
+      const res = await api.get<PaginatedResponse<Activity>>(
+        `/vaults/${vaultId}/activities?limit=1000`
+      );
+      this.activities = res.items.map((a) => ({
+        id: a.id,
+        title: a.title
+      }));
+      this.activitiesVaultId = vaultId;
+    } catch {
+      this.activities = [];
     }
   }
 
@@ -48,8 +71,10 @@ class LookupState {
 
   invalidate(): void {
     this.contactsVaultId = null;
+    this.activitiesVaultId = null;
     this.activityTypesVaultId = null;
     this.contacts = [];
+    this.activities = [];
     this.activityTypes = [];
   }
 }

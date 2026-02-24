@@ -34,6 +34,7 @@
 
   $effect(() => {
     lookup.loadContacts(vaultId);
+    lookup.loadActivities(vaultId);
   });
 
   async function loadTasks(params: { offset: number; limit: number; search: string; filter: string | null }) {
@@ -206,7 +207,12 @@
           <option value={c.id}>{c.name}</option>
         {/each}
       </Select>
-      <Input label="Activity ID" bind:value={editForm.activity_id} placeholder="Optional" />
+      <Select label="Activity" bind:value={editForm.activity_id}>
+        <option value="">None</option>
+        {#each lookup.activities as a}
+          <option value={a.id}>{a.title}</option>
+        {/each}
+      </Select>
       {#if formError}<p class="text-sm text-red-400">{formError}</p>{/if}
       <div class="flex justify-end gap-3">
         <Button variant="ghost" onclick={() => (editingTask = null)}>Cancel</Button>
