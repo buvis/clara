@@ -5,7 +5,7 @@
   import Spinner from '$components/ui/Spinner.svelte';
   import EmptyState from '$components/ui/EmptyState.svelte';
   import type { PaginatedResponse } from '$lib/types/common';
-  import type { Snippet, Component } from 'svelte';
+  import type { Snippet } from 'svelte';
 
   interface FilterChip {
     label: string;
@@ -16,7 +16,7 @@
     load: (params: { offset: number; limit: number; search: string; filter: string | null }) => Promise<PaginatedResponse<T>>;
     row: Snippet<[T]>;
     header?: Snippet;
-    emptyIcon?: Component<{ size?: number }>;
+    emptyIcon?: any;
     emptyTitle?: string;
     emptyDescription?: string;
     searchPlaceholder?: string;

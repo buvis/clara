@@ -5,7 +5,7 @@ import { paginated } from '$tests/helpers';
 
 const row = createRawSnippet((item: () => { name: string }) => ({
   render: () => `<div>${item().name}</div>`
-}));
+})) as any;
 
 const header = createRawSnippet(() => ({
   render: () => `<button>Add</button>`

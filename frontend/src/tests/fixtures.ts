@@ -59,6 +59,11 @@ export function makeContact(overrides?: Partial<Contact>): Contact {
     favorite: false,
     photo_file_id: null,
     template_id: null,
+    contact_methods: [],
+    addresses: [],
+    tags: [],
+    pets: [],
+    relationships: [],
     created_at: now,
     updated_at: now,
     ...overrides
@@ -110,6 +115,7 @@ export function makeActivityType(overrides?: Partial<ActivityType>): ActivityTyp
     icon: 'calendar',
     color: '#3b82f6',
     created_at: now,
+    updated_at: now,
     ...overrides
   };
 }

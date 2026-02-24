@@ -18,7 +18,7 @@ vi.mock('$api/tasks', () => ({
 }));
 
 vi.mock('$state/lookup.svelte', () => ({
-  lookup: { contacts: [], loadContacts: vi.fn() }
+  lookup: { contacts: [], activities: [], loadContacts: vi.fn(), loadActivities: vi.fn() }
 }));
 
 beforeEach(() => {

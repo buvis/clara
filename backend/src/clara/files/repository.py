@@ -25,7 +25,9 @@ class FileRepository(BaseRepository[File]):
             count_stmt = count_stmt.where(File.filename.ilike(pattern))
             items_stmt = items_stmt.where(File.filename.ilike(pattern))
         total: int = (await self.session.execute(count_stmt)).scalar_one()
-        items_stmt = items_stmt.offset(offset).limit(limit).order_by(File.created_at.desc())
+        items_stmt = (
+            items_stmt.offset(offset).limit(limit).order_by(File.created_at.desc())
+        )
         result = await self.session.execute(items_stmt)
         return result.scalars().all(), total
 

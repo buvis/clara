@@ -2,8 +2,6 @@ import uuid
 from collections.abc import Sequence
 from datetime import date
 
-from sqlalchemy import Select
-
 from clara.base.repository import BaseRepository
 from clara.reminders.models import Reminder, StayInTouchConfig
 

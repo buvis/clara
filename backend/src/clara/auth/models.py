@@ -73,7 +73,9 @@ class PersonalAccessToken(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(String(255))
     token_prefix: Mapped[str] = mapped_column(String(12))
     token_hash: Mapped[str] = mapped_column(Text)
-    scopes: Mapped[list] = mapped_column(JSON, default=list, server_default='["read","write"]')
+    scopes: Mapped[list] = mapped_column(
+        JSON, default=list, server_default='["read","write"]'
+    )
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 

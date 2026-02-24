@@ -5,7 +5,7 @@
     label?: string;
     error?: string;
     value?: string | null;
-    rows?: number | string;
+    rows?: number;
   }
 
   let {

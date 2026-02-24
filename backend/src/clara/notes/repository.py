@@ -26,7 +26,9 @@ class NoteRepository(BaseRepository[Note]):
             count_stmt = count_stmt.where(filt)
             items_stmt = items_stmt.where(filt)
         total: int = (await self.session.execute(count_stmt)).scalar_one()
-        items_stmt = items_stmt.offset(offset).limit(limit).order_by(Note.created_at.desc())
+        items_stmt = (
+            items_stmt.offset(offset).limit(limit).order_by(Note.created_at.desc())
+        )
         result = await self.session.execute(items_stmt)
         return result.scalars().all(), total
 

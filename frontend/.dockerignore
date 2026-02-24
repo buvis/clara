@@ -2,4 +2,6 @@
 node_modules
 .svelte-kit
 build
-*.test.ts
+**/*.test.ts
+**/*.svelte.test.ts
+src/tests

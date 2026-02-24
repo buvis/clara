@@ -34,11 +34,18 @@ class ActivityRepository(BaseRepository[Activity]):
         items_stmt = self._base_query()
         if q:
             pattern = f"%{q}%"
-            filt = or_(Activity.title.ilike(pattern), Activity.description.ilike(pattern))
+            filt = or_(
+                Activity.title.ilike(pattern),
+                Activity.description.ilike(pattern),
+            )
             base_where = base_where.where(filt)
             items_stmt = items_stmt.where(filt)
         total: int = (await self.session.execute(base_where)).scalar_one()
-        items_stmt = items_stmt.order_by(Activity.happened_at.desc()).offset(offset).limit(limit)
+        items_stmt = (
+            items_stmt.order_by(Activity.happened_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
         result = await self.session.execute(items_stmt)
         return result.scalars().all(), total
 

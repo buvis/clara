@@ -96,7 +96,7 @@
           {/each}
         </div>
       </div>
-      <Textarea label="Content" bind:value={createForm.body_markdown} rows="6" placeholder="Write about your day..." />
+      <Textarea label="Content" bind:value={createForm.body_markdown} rows={6} placeholder="Write about your day..." />
       <div class="flex justify-end gap-3">
         <Button variant="ghost" onclick={() => (showCreate = false)}>Cancel</Button>
         <Button type="submit" loading={creating}>Create</Button>

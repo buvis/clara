@@ -13,6 +13,15 @@ spec:
       labels:
         app: backend
     spec:
+      initContainers:
+        - name: migrate
+          image: clara-backend:v0.1.0
+          command: ["uv", "run", "alembic", "upgrade", "head"]
+          envFrom:
+            - configMapRef:
+                name: clara-config
+            - secretRef:
+                name: clara-secret
       containers:
         - name: backend
           image: clara-backend:v0.1.0
